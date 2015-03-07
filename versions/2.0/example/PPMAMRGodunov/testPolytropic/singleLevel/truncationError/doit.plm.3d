@@ -1,0 +1,23 @@
+#!/bin/csh -f
+#
+# Run truncation error tests for PLM in 3D for a variety of plane waves
+#
+
+if ($#argv < 1) then
+  echo "Usage:  $0 testname"
+  exit 1
+endif
+
+# Get the test name
+set testname=$1
+
+# Set the predictor method and dimension
+set pred=plm
+set dim=3d
+
+echo "Truncation error for ${pred} ${dim} ${testname}..."
+
+# Run all the computations, compute the error, and generate a report/tables
+# of the results
+genall ${pred} ${dim} ${testname} "Test" "runsome errsome repsome" \
+| tee results.${pred}.${testname}.${dim}

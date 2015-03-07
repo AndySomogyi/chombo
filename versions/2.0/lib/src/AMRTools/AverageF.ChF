@@ -1,0 +1,292 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+      subroutine average(
+     &     CHF_FRA[coarse],
+     &     CHF_CONST_FRA[fine],
+     &     CHF_BOX[box],
+     &     CHF_CONST_INT[refRatio],
+     &     CHF_BOX[bref])
+
+      integer var
+      integer CHF_DDECL[ic;jc;kc]
+      integer CHF_DDECL[ip;jp;kp]
+      integer CHF_DDECL[ii;jj;kk]
+
+      real_t refScale,coarseSum
+
+c     bref is a box that will go from (0,0,0) to (refRatio-1)*(1,1,1)
+c     Most, if not all, of the times this function is called,
+c     refRatio will be 2 or 4.  To speed thing up here, we
+c     unroll the loop if refRatio is 2 or 4.  Otherwise, use original
+c     loop.  This optimization is particularly effective on the
+c     POWER3 chip (seaborg) (ndk)
+
+      refScale = one / (refRatio**CH_SPACEDIM)
+
+      if (refRatio .eq. 2) then
+        do var = 0, CHF_NCOMP[coarse] - 1
+          CHF_MULTIDO[box;ic;jc;kc]
+            CHF_DTERM[
+            ip = 2*ic;
+            jp = 2*jc;
+            kp = 2*kc]
+
+            coarse(CHF_IX[ic;jc;kc],var) = refScale *
+     &        (CHF_DTERM[
+     &          fine(CHF_IX[ip  ;jp  ;kp  ],var)
+     &        + fine(CHF_IX[ip+1;jp  ;kp  ],var);
+     &        + fine(CHF_IX[ip  ;jp+1;kp  ],var)
+     &        + fine(CHF_IX[ip+1;jp+1;kp  ],var);
+     &        + fine(CHF_IX[ip  ;jp  ;kp+1],var)
+     &        + fine(CHF_IX[ip+1;jp  ;kp+1],var)
+     &        + fine(CHF_IX[ip  ;jp+1;kp+1],var)
+     &        + fine(CHF_IX[ip+1;jp+1;kp+1],var) ])
+          CHF_ENDDO
+        enddo
+      else if (refRatio .eq. 4) then
+        do var = 0, CHF_NCOMP[coarse] - 1
+          CHF_MULTIDO[box;ic;jc;kc]
+            CHF_DTERM[
+            ip = 4*ic;
+            jp = 4*jc;
+            kp = 4*kc]
+
+            coarse(CHF_IX[ic;jc;kc],var) = refScale *
+     &        (CHF_DTERM[
+     &           fine(CHF_IX[ip  ;jp  ;kp  ],var)
+     &         + fine(CHF_IX[ip+1;jp  ;kp  ],var)
+     &         + fine(CHF_IX[ip+2;jp  ;kp  ],var)
+     &         + fine(CHF_IX[ip+3;jp  ;kp  ],var) ;
+     &         + fine(CHF_IX[ip  ;jp+1;kp  ],var)
+     &         + fine(CHF_IX[ip+1;jp+1;kp  ],var)
+     &         + fine(CHF_IX[ip+2;jp+1;kp  ],var)
+     &         + fine(CHF_IX[ip+3;jp+1;kp  ],var)
+     &         + fine(CHF_IX[ip  ;jp+2;kp  ],var)
+     &         + fine(CHF_IX[ip+1;jp+2;kp  ],var)
+     &         + fine(CHF_IX[ip+2;jp+2;kp  ],var)
+     &         + fine(CHF_IX[ip+3;jp+2;kp  ],var)
+     &         + fine(CHF_IX[ip  ;jp+3;kp  ],var)
+     &         + fine(CHF_IX[ip+1;jp+3;kp  ],var)
+     &         + fine(CHF_IX[ip+2;jp+3;kp  ],var)
+     &         + fine(CHF_IX[ip+3;jp+3;kp  ],var) ;
+     &         + fine(CHF_IX[ip  ;jp  ;kp+1],var)
+     &         + fine(CHF_IX[ip+1;jp  ;kp+1],var)
+     &         + fine(CHF_IX[ip+2;jp  ;kp+1],var)
+     &         + fine(CHF_IX[ip+3;jp  ;kp+1],var)
+     &         + fine(CHF_IX[ip  ;jp+1;kp+1],var)
+     &         + fine(CHF_IX[ip+1;jp+1;kp+1],var)
+     &         + fine(CHF_IX[ip+2;jp+1;kp+1],var)
+     &         + fine(CHF_IX[ip+3;jp+1;kp+1],var)
+     &         + fine(CHF_IX[ip  ;jp+2;kp+1],var)
+     &         + fine(CHF_IX[ip+1;jp+2;kp+1],var)
+     &         + fine(CHF_IX[ip+2;jp+2;kp+1],var)
+     &         + fine(CHF_IX[ip+3;jp+2;kp+1],var)
+     &         + fine(CHF_IX[ip  ;jp+3;kp+1],var)
+     &         + fine(CHF_IX[ip+1;jp+3;kp+1],var)
+     &         + fine(CHF_IX[ip+2;jp+3;kp+1],var)
+     &         + fine(CHF_IX[ip+3;jp+3;kp+1],var)
+     &         + fine(CHF_IX[ip  ;jp  ;kp+2],var)
+     &         + fine(CHF_IX[ip+1;jp  ;kp+2],var)
+     &         + fine(CHF_IX[ip+2;jp  ;kp+2],var)
+     &         + fine(CHF_IX[ip+3;jp  ;kp+2],var)
+     &         + fine(CHF_IX[ip  ;jp+1;kp+2],var)
+     &         + fine(CHF_IX[ip+1;jp+1;kp+2],var)
+     &         + fine(CHF_IX[ip+2;jp+1;kp+2],var)
+     &         + fine(CHF_IX[ip+3;jp+1;kp+2],var)
+     &         + fine(CHF_IX[ip  ;jp+2;kp+2],var)
+     &         + fine(CHF_IX[ip+1;jp+2;kp+2],var)
+     &         + fine(CHF_IX[ip+2;jp+2;kp+2],var)
+     &         + fine(CHF_IX[ip+3;jp+2;kp+2],var)
+     &         + fine(CHF_IX[ip  ;jp+3;kp+2],var)
+     &         + fine(CHF_IX[ip+1;jp+3;kp+2],var)
+     &         + fine(CHF_IX[ip+2;jp+3;kp+2],var)
+     &         + fine(CHF_IX[ip+3;jp+3;kp+2],var)
+     &         + fine(CHF_IX[ip  ;jp  ;kp+3],var)
+     &         + fine(CHF_IX[ip+1;jp  ;kp+3],var)
+     &         + fine(CHF_IX[ip+2;jp  ;kp+3],var)
+     &         + fine(CHF_IX[ip+3;jp  ;kp+3],var)
+     &         + fine(CHF_IX[ip  ;jp+1;kp+3],var)
+     &         + fine(CHF_IX[ip+1;jp+1;kp+3],var)
+     &         + fine(CHF_IX[ip+2;jp+1;kp+3],var)
+     &         + fine(CHF_IX[ip+3;jp+1;kp+3],var)
+     &         + fine(CHF_IX[ip  ;jp+2;kp+3],var)
+     &         + fine(CHF_IX[ip+1;jp+2;kp+3],var)
+     &         + fine(CHF_IX[ip+2;jp+2;kp+3],var)
+     &         + fine(CHF_IX[ip+3;jp+2;kp+3],var)
+     &         + fine(CHF_IX[ip  ;jp+3;kp+3],var)
+     &         + fine(CHF_IX[ip+1;jp+3;kp+3],var)
+     &         + fine(CHF_IX[ip+2;jp+3;kp+3],var)
+     &         + fine(CHF_IX[ip+3;jp+3;kp+3],var) ])
+          CHF_ENDDO
+        enddo
+      else
+        do var = 0, CHF_NCOMP[coarse] - 1
+          CHF_MULTIDO[box;ic;jc;kc]
+            CHF_DTERM[
+            ip = ic*refRatio;
+            jp = jc*refRatio;
+            kp = kc*refRatio]
+
+            coarseSum = zero
+
+            CHF_MULTIDO[ bref; ii; jj; kk ]
+              coarseSum = coarseSum + fine( CHF_IX[ip+ii;jp+jj;kp+kk],var)
+            CHF_ENDDO
+
+            coarse(CHF_IX[ic;jc;kc],var) = coarseSum * refScale
+          CHF_ENDDO
+       enddo
+      endif
+
+      return
+      end
+
+
+      subroutine averageharmonic(
+     &     CHF_FRA[coarse],
+     &     CHF_CONST_FRA[fine],
+     &     CHF_BOX[box],
+     &     CHF_CONST_INT[refRatio],
+     &     CHF_BOX[bref])
+
+      integer var
+      integer CHF_DDECL[ic;jc;kc]
+      integer CHF_DDECL[ip;jp;kp]
+      integer CHF_DDECL[ii;jj;kk]
+
+      real_t refScale,coarseSum
+
+c     bref is a box that will go from (0,0,0) to (refRatio-1)*(1,1,1)
+c     Most, if not all, of the times this function is called,
+c     refRatio will be 2 or 4.  To speed thing up here, we
+c     unroll the loop if refRatio is 2 or 4.  Otherwise, use original
+c     loop.  This optimization is particularly effective on the
+c     POWER3 chip (seaborg) (ndk)
+
+      refScale = one / (refRatio**CH_SPACEDIM)
+
+      if (refRatio .eq. 2) then
+        do var = 0, CHF_NCOMP[coarse] - 1
+          CHF_MULTIDO[box;ic;jc;kc]
+            CHF_DTERM[
+            ip = 2*ic;
+            jp = 2*jc;
+            kp = 2*kc]
+
+            coarse(CHF_IX[ic;jc;kc],var) = refScale *
+     &        (CHF_DTERM[
+     &          one/fine(CHF_IX[ip  ;jp  ;kp  ],var)
+     &        + one/fine(CHF_IX[ip+1;jp  ;kp  ],var);
+     &        + one/fine(CHF_IX[ip  ;jp+1;kp  ],var)
+     &        + one/fine(CHF_IX[ip+1;jp+1;kp  ],var);
+     &        + one/fine(CHF_IX[ip  ;jp  ;kp+1],var)
+     &        + one/fine(CHF_IX[ip+1;jp  ;kp+1],var)
+     &        + one/fine(CHF_IX[ip  ;jp+1;kp+1],var)
+     &        + one/fine(CHF_IX[ip+1;jp+1;kp+1],var) ])
+            coarse(CHF_IX[ic;jc;kc],var) = one/coarse(CHF_IX[ic;jc;kc],var)
+          CHF_ENDDO
+        enddo
+      else if (refRatio .eq. 4) then
+        do var = 0, CHF_NCOMP[coarse] - 1
+          CHF_MULTIDO[box;ic;jc;kc]
+            CHF_DTERM[
+            ip = 4*ic;
+            jp = 4*jc;
+            kp = 4*kc]
+
+            coarse(CHF_IX[ic;jc;kc],var) = refScale *
+     &        (CHF_DTERM[
+     &           one/fine(CHF_IX[ip  ;jp  ;kp  ],var)
+     &         + one/fine(CHF_IX[ip+1;jp  ;kp  ],var)
+     &         + one/fine(CHF_IX[ip+2;jp  ;kp  ],var)
+     &         + one/fine(CHF_IX[ip+3;jp  ;kp  ],var) ;
+     &         + one/fine(CHF_IX[ip  ;jp+1;kp  ],var)
+     &         + one/fine(CHF_IX[ip+1;jp+1;kp  ],var)
+     &         + one/fine(CHF_IX[ip+2;jp+1;kp  ],var)
+     &         + one/fine(CHF_IX[ip+3;jp+1;kp  ],var)
+     &         + one/fine(CHF_IX[ip  ;jp+2;kp  ],var)
+     &         + one/fine(CHF_IX[ip+1;jp+2;kp  ],var)
+     &         + one/fine(CHF_IX[ip+2;jp+2;kp  ],var)
+     &         + one/fine(CHF_IX[ip+3;jp+2;kp  ],var)
+     &         + one/fine(CHF_IX[ip  ;jp+3;kp  ],var)
+     &         + one/fine(CHF_IX[ip+1;jp+3;kp  ],var)
+     &         + one/fine(CHF_IX[ip+2;jp+3;kp  ],var)
+     &         + one/fine(CHF_IX[ip+3;jp+3;kp  ],var) ;
+     &         + one/fine(CHF_IX[ip  ;jp  ;kp+1],var)
+     &         + one/fine(CHF_IX[ip+1;jp  ;kp+1],var)
+     &         + one/fine(CHF_IX[ip+2;jp  ;kp+1],var)
+     &         + one/fine(CHF_IX[ip+3;jp  ;kp+1],var)
+     &         + one/fine(CHF_IX[ip  ;jp+1;kp+1],var)
+     &         + one/fine(CHF_IX[ip+1;jp+1;kp+1],var)
+     &         + one/fine(CHF_IX[ip+2;jp+1;kp+1],var)
+     &         + one/fine(CHF_IX[ip+3;jp+1;kp+1],var)
+     &         + one/fine(CHF_IX[ip  ;jp+2;kp+1],var)
+     &         + one/fine(CHF_IX[ip+1;jp+2;kp+1],var)
+     &         + one/fine(CHF_IX[ip+2;jp+2;kp+1],var)
+     &         + one/fine(CHF_IX[ip+3;jp+2;kp+1],var)
+     &         + one/fine(CHF_IX[ip  ;jp+3;kp+1],var)
+     &         + one/fine(CHF_IX[ip+1;jp+3;kp+1],var)
+     &         + one/fine(CHF_IX[ip+2;jp+3;kp+1],var)
+     &         + one/fine(CHF_IX[ip+3;jp+3;kp+1],var)
+     &         + one/fine(CHF_IX[ip  ;jp  ;kp+2],var)
+     &         + one/fine(CHF_IX[ip+1;jp  ;kp+2],var)
+     &         + one/fine(CHF_IX[ip+2;jp  ;kp+2],var)
+     &         + one/fine(CHF_IX[ip+3;jp  ;kp+2],var)
+     &         + one/fine(CHF_IX[ip  ;jp+1;kp+2],var)
+     &         + one/fine(CHF_IX[ip+1;jp+1;kp+2],var)
+     &         + one/fine(CHF_IX[ip+2;jp+1;kp+2],var)
+     &         + one/fine(CHF_IX[ip+3;jp+1;kp+2],var)
+     &         + one/fine(CHF_IX[ip  ;jp+2;kp+2],var)
+     &         + one/fine(CHF_IX[ip+1;jp+2;kp+2],var)
+     &         + one/fine(CHF_IX[ip+2;jp+2;kp+2],var)
+     &         + one/fine(CHF_IX[ip+3;jp+2;kp+2],var)
+     &         + one/fine(CHF_IX[ip  ;jp+3;kp+2],var)
+     &         + one/fine(CHF_IX[ip+1;jp+3;kp+2],var)
+     &         + one/fine(CHF_IX[ip+2;jp+3;kp+2],var)
+     &         + one/fine(CHF_IX[ip+3;jp+3;kp+2],var)
+     &         + one/fine(CHF_IX[ip  ;jp  ;kp+3],var)
+     &         + one/fine(CHF_IX[ip+1;jp  ;kp+3],var)
+     &         + one/fine(CHF_IX[ip+2;jp  ;kp+3],var)
+     &         + one/fine(CHF_IX[ip+3;jp  ;kp+3],var)
+     &         + one/fine(CHF_IX[ip  ;jp+1;kp+3],var)
+     &         + one/fine(CHF_IX[ip+1;jp+1;kp+3],var)
+     &         + one/fine(CHF_IX[ip+2;jp+1;kp+3],var)
+     &         + one/fine(CHF_IX[ip+3;jp+1;kp+3],var)
+     &         + one/fine(CHF_IX[ip  ;jp+2;kp+3],var)
+     &         + one/fine(CHF_IX[ip+1;jp+2;kp+3],var)
+     &         + one/fine(CHF_IX[ip+2;jp+2;kp+3],var)
+     &         + one/fine(CHF_IX[ip+3;jp+2;kp+3],var)
+     &         + one/fine(CHF_IX[ip  ;jp+3;kp+3],var)
+     &         + one/fine(CHF_IX[ip+1;jp+3;kp+3],var)
+     &         + one/fine(CHF_IX[ip+2;jp+3;kp+3],var)
+     &         + one/fine(CHF_IX[ip+3;jp+3;kp+3],var) ])
+            coarse(CHF_IX[ic;jc;kc],var) = one/coarse(CHF_IX[ic;jc;kc],var)
+          CHF_ENDDO
+        enddo
+      else
+        do var = 0, CHF_NCOMP[coarse] - 1
+          CHF_MULTIDO[box;ic;jc;kc]
+            CHF_DTERM[
+            ip = ic*refRatio;
+            jp = jc*refRatio;
+            kp = kc*refRatio]
+
+            coarseSum = zero
+
+            CHF_MULTIDO[ bref; ii; jj; kk ]
+              coarseSum = coarseSum + one/fine( CHF_IX[ip+ii;jp+jj;kp+kk],var)
+            CHF_ENDDO
+
+            coarse(CHF_IX[ic;jc;kc],var) = one/(coarseSum * refScale)
+          CHF_ENDDO
+       enddo
+      endif
+
+      return
+      end

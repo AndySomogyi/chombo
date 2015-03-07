@@ -1,0 +1,4 @@
+Test that laplacian on a quadratic is exactly 2*SpaceDim.
+
+Example input file:  inputs.3level
+This is the same as ../inputs/read2op42quad16 but with verbosity turned off.

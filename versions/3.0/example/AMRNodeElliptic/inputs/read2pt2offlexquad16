@@ -1,0 +1,30 @@
+#main parameters
+main.iprob              = 1       #form of rhs to use
+main.num_v_cycles_bottom = 1
+main.iterations          = 1  #number of times to solve
+main.max_iterations      = 20 # max of times to iterate on one solve
+#main.point_source	= 0.02 -0.05 	# location of point source
+#main.point_source	= 0.5  0.5 0.5 	# location of point source
+main.point_source	= 0.52 0.45 0.49	# location of point source
+main.bc_lo              = 2 2 2   #bcs for lo faces 1==neumann, 0 == dirc
+main.bc_hi              = 2 2 2   #bcs for hi faces 1==neumann, 0 == dirc
+main.max_level          = 2           # maximum level number
+main.maxboxsize         = 32           # maximum linear size of boxes
+#main.ref_ratio          = 4 4 4 4 4 4 4    # refinement ratio
+main.ref_ratio          = 2 2 2 2 2 2 2 2    # refinement ratio
+#main.ref_ratio          = 4 2 2 2 2 2 2 2    # refinement ratio
+main.n_cell             = 16 16 16    # num. cells in base grid dirs
+main.prob_lo            = 0.0 0.0 0.0 # coords. of lower left. 
+main.prob_hi            = 1.0 1.0 1.0 # coords. of upper right.
+main.lbase              = 0          #lbase for solves
+main.verbose            = 1          #if this is == 1, verbose is true
+main.fill_ratio         = 0.85     #fill ratio for meshrefine
+main.deg_interp         = 2      # 2 means quadratic/biquadratic
+main.ideriv_code        = 0     # 0 means linear extrapolation
+main.level_1_domain     = 0 0 0   7 7 7 # base domain for level 1 boxes
+main.level_1_boxcount   = 1             # number of boxes at level 1
+main.level_1_boxes      = 1 1 1   6 6 6
+main.level_2_domain     = 0 0 0   7 7 7 # base domain for level 1 boxes
+main.level_2_boxcount   = 1             # number of boxes at level 1
+main.level_2_boxes      = 4 2 2   5 5 5
+

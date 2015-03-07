@@ -1,0 +1,75 @@
+#max steps at finest level
+#no max time here.  controlled by steps and time step
+max_step  	      = 0
+viscosity             = 0.01
+#viscosity             = 0.0
+do_slip_walls         = 0	
+poisselle_inflow = true
+##fixed step at finest level. negative for no fixed step
+#nx = 128
+#fixed_dt              = 4.0e-3
+#nx = 256
+#fixed_dt              = 2.0e-3
+#nx = 512
+#fixed_dt              = 1.0e-3
+#fixed_dt              = -1.0
+max_time              = 1.0e10
+use_limiting          = 0
+domain_length         = 4.0
+max_level	      = 0
+num_filtrations       = 0
+
+#this is the coarsest box of the coarsest level
+#fixed_dt              = 1.6e-2
+#n_cell                = 32 8 8
+
+#fixed_dt              = 8.0e-3
+#n_cell                = 64 16 16
+
+fixed_dt              = 4.0e-3
+n_cell                = 128 32 32
+
+#fixed_dt              = 2.0e-3
+#n_cell                = 256 64 64
+
+#fixed_dt              = 1.0e-3
+#n_cell                = 512 128 128
+
+ref_ratio             = 2 2 2 2 2 
+checkpoint_interval   = -1
+plot_interval	      = 10
+#max_grid_size	      = 32
+max_grid_size	      = 1024
+fill_ratio	      = 0.7
+block_factor	      = 8
+regrid_interval	      = 2
+##this has to be bigger than one!
+max_dt_grow	      = 1.1  
+cfl		      = 0.5
+init_cfl	      = 0.5
+refine_threshold      = 0.1
+verbosity	      = 1
+nesting_radius	      = 2
+tag_buffer	      = 2
+flow_dir	      = 0
+spot_center	      = 0.15 0.5 0.25
+spot_radius	      = 0.1
+inflow_vel	      = 1.0
+
+do_error_output  = 1
+test_verbosity = 3
+
+###geometry flag
+## 0 is all regular
+which_geom = 0
+
+#which_geom = 13
+tyler_x1   = 1.0
+tyler_x2   = 3.0
+##expansion channel
+#tyler_y1   = 0.3
+#tyler_y2   = 0.4999
+#contraction channel
+tyler_y2   = 0.3
+tyler_y1   = 0.49
+

@@ -1,0 +1,80 @@
+#problem independent stuff
+artificial_viscosity = 0.1
+#restart_file = chk70.2d.hdf5
+cfl = 0.9
+use_mass_redist = 1
+initial_cfl = 0.1
+verbosity = 1
+#max_step = 600
+max_step = 3
+max_time = 0.07
+tag_buffer_size = 3
+refine_thresh = 0.05
+regrid_interval = 2 2 2 2 2 2
+max_dt_growth = 1.1
+dt_tolerance_factor = 1.1
+fixed_dt   = -1
+gamma = 1.4
+domain_length = 1.0 0.5 0.5
+
+
+###explosion problem defns
+#shock_mach = 2.071
+shock_mach = 10
+shock_center = 0.15
+shock_normal = 0
+
+
+max_level = 0
+##grid parameters
+#coarsest grid size
+n_cell =  32 16 16
+#n_cell =  64 32 32
+#n_cell =  64 64 64
+#n_cell =  128 128 128
+#n_cell =  256 256 256
+#n_cell =  512 512 512
+#n_cell =  10 10 10
+#n_cell =   8 8 8
+#n_cell = 16 16 16 
+ref_ratio = 2 2 2 2 
+#ref_ratio = 4 4 4
+#ref_ratio = 2 4 4
+#ref_ratio = 8 8 8
+block_factor =  4
+max_grid_size = 64
+fill_ratio = 0.75
+
+###file output stuff
+checkpoint_interval = -1
+plot_interval = -1
+#plot_interval = 40
+plot_prefix  = plt
+chk_prefix = chk
+
+###slope switches
+use_fourth_order_slopes = 1
+use_flattening = 1
+use_art_visc   = 1
+
+#########eb specific stuff#############
+
+##redistribution radius
+redist_radius = 1
+
+###geometry flag
+## 1 is a ramp
+which_geom = 1
+shock_backward = 0
+##proper nesting radius
+grid_buffer_size = 1
+
+### ramp stuff
+#ramp_normal = -0.125 1.0 0.00
+#start at 1/8
+#ramp_alpha = -0.015625
+#30 degree ramp
+#start at 1/8
+ramp_normal = -0.5 0.866025404 0.0
+ramp_alpha = -0.0625
+

@@ -1,0 +1,85 @@
+#restart_file          = check1100.2d.hdf5
+max_step  	      = 1
+#max_step  	      = 100
+#max_step  	      = 0
+max_time              = 40.0
+
+mg_relax_type  = 2
+mg_num_smooths = 4
+#bottom solver:  0=BiCGStab, 1=EBSimpleSmoother
+mg_bottom_solver = 0
+mg_num_precond = 4
+mg_num_cycles = 1
+mg_hang        = 1.0e-1
+mg_tolerance   = 1.0e-10
+mg_norm_thresh = 1.0e-12
+mg_iter_max    = 100
+
+tag_on_scalar         = 0
+
+#euler
+viscosity             = 0.0
+#refine_threshold      = 5.0
+
+#viscosity             = 0.0005
+refine_threshold      = 7.0
+
+do_slip_walls         = 1
+
+use_limiting          = 1
+domain_length         = 4.0
+do_regrid_smoothing = true
+
+max_level	      = 0
+n_cell                = 32 8 8
+#n_cell                = 64 16 16
+#n_cell                =  128 32 32
+#n_cell                = 256 64 64 
+#n_cell                = 512 128 128
+ref_ratio	      = 2 2 2 2
+#ref_ratio	      = 2 4 4 4
+num_filter_iterations  = 4
+num_gphi_iterations    = 1
+num_init_iterations    = 1
+order_ebbc =2
+
+checkpoint_interval   = 100
+plot_interval	      = 100
+max_grid_size	      = 32
+fill_ratio	      = 0.7
+block_factor	      = 8
+#regrid_interval	      = 2
+regrid_interval	      = 1000000
+##this has to be bigger than one!
+max_dt_grow	      = 1.1  
+cfl		      = 0.5
+init_cfl	      = 0.5
+verbosity	      = 3
+nesting_radius	      = 2
+#tag_buffer	      = 4
+tag_buffer	      = 8
+flow_dir	      = 0
+spot_center	      = 0.25 0.5 0.25
+spot_radius	      = 0.25
+inflow_vel	      = 1.0
+poisselle_inflow = false
+streak_radius = 0.02
+num_streaks   = 5	
+perturbation_eps      = 0.1
+perturbation_freq     = 2.0
+
+
+###geometry flag
+## 0 is all regular
+#which_geom = 0
+
+## 5 is a sphere
+## 15 is a half sphere
+which_geom = 5
+#which_geom = 15
+
+sphere_radius = 0.1
+sphere_center = 0.51 0.5 0.5
+cutplane_normal = 1.0 0.0 0.0
+
+

@@ -1,0 +1,88 @@
+#problem independent stuff
+artificial_viscosity = 0.3
+cfl = 0.5
+use_mass_redist = 1
+initial_cfl = 0.02
+verbosity = 1
+max_step = 2
+#max_step = 0
+max_time = 100.
+tag_buffer_size = 1
+grid_buffer_size = 2
+refine_thresh = 0.1
+regrid_interval = 2 2 2 2 2 2
+max_dt_growth = 1.1
+dt_tolerance_factor = 1.1
+fixed_dt   = -1
+gamma = 1.4
+
+#number you multiply r0 by to get floor
+smallness = 1.0e-8
+
+###explosion problem defns
+###explosion problem defns
+###explosion problem defns
+explosion_center = 0.0 0.0 0.0
+explosion_size = 2.75
+explosion_p0 = 13.0	
+explosion_r0 = 0.075	
+explosion_p1 = 6900000.0	
+explosion_r1 = 81.5	
+
+#ebis_file = sphere128.3d.hdf5
+#ebis_file = sphere128.2d.hdf5
+
+use_timed_load_balance = true
+max_level = 2
+##grid parameters
+#coarsest grid size
+#n_cell =  16 16 64
+n_cell =  64 64 256
+#n_cell =  128 128 512
+#n_cell =  256 256 256
+#n_cell =  512 512 512
+#n_cell =  10 10 10
+#n_cell =   8 8 8
+#n_cell = 16 16 16 
+ref_ratio = 2 2 2 2 2 2 2
+#ref_ratio = 4 4 4 4
+#ref_ratio = 2 4 4
+#ref_ratio = 8 8 8
+block_factor =  4
+#max_grid_size = 16
+max_grid_size = 32
+fill_ratio = 0.75
+
+###file output stuff
+checkpoint_interval = 10
+plot_interval = 100
+#plot_interval = 40
+plot_prefix  = plt
+chk_prefix = chk
+#restart_file = chk0.3d.hdf5
+
+###slope switches
+use_fourth_order_slopes = 1
+use_flattening = 1
+use_art_visc   = 1
+
+#########eb specific stuff#############
+
+redist_radius = 1
+
+###geometry flag
+## 20 is gas jet
+which_geom = 20
+
+# Domain domain - physical coordinates (3D)
+#prob_lo = -3.75 -3.75 -5.0 
+prob_lo = -3.75 -3.75 -1.5 
+#prob_hi =  3.75  3.75 10.0
+prob_hi =  3.75  3.75 28.5
+domain_length = 7.5 7.5 30.0
+
+# insideRegular != 0 -> Domain is on the inside  of the nozzle
+# insideRegular == 0 -> Domain is on the outside of the nozzle
+insideRegular = 0
+
+

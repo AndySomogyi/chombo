@@ -1,0 +1,193 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+      subroutine upwind(CHF_FRA[flux], CHF_FRA[U], CHF_REALVECT[advVel],
+     &                  CHF_REAL[dt], CHF_REAL[dx], CHF_BOX[faceBox],
+     &                  CHF_INT[dir])
+      
+      integer CHF_DDECL[i;j;k]
+      integer CHF_DDECL[ii;jj;kk]
+      integer n, dirMult
+      REAL_T dirVel
+
+
+c this is kind of a stupid way to do this, and it neglects corner cells, but 
+c will do for now
+
+c  this defines which way to look for the upwind cell
+c  this looks a little odd, but 0 here means we're looking to the right 
+c  of the face
+
+      dirVel = advVel(dir)
+      dirMult = -1
+      if (dirVel < 0) dirMult = 0
+
+c  this looks a little funny, but the idea is to define which
+c  cell is the donor cell
+      CHF_DTERM[ii = dirMult*CHF_ID(dir,0);
+                jj = dirMult*CHF_ID(dir,1);
+                kk = dirMult*CHF_ID(dir,2)]
+
+
+      do n=0, CHF_NCOMP[U]-1
+         CHF_MULTIDO[faceBox; i;j;k]
+            
+            flux(CHF_IX[i;j;k],n) = dirVel*U(CHF_IX[i+ii;j+jj;k+kk],n)
+         
+         CHF_ENDDO
+      enddo
+
+      return
+      end
+
+
+
+      subroutine incrementdivdir(CHF_FRA[U], CHF_FRA[flux],
+     &                           CHF_BOX[gridBox], CHF_REAL[dx],
+     &                           CHF_REAL[dt], CHF_INT[dir])
+
+      
+      integer CHF_DDECL[i;j;k]
+      integer CHF_DDECL[ii;jj;kk]
+      integer n
+      REAL_T dtbydx
+      
+      dtbydx = dt/dx
+
+      CHF_DTERM[ii = CHF_ID(0,dir);
+                jj = CHF_ID(1,dir);
+                kk = CHF_ID(2,dir)]
+
+      
+      do n=0, CHF_NCOMP[U]-1
+         CHF_MULTIDO[gridBox; i;j;k]
+            U(CHF_IX[i;j;k],n) = U(CHF_IX[i;j;k],n) 
+     &                     - dtbydx*(flux(CHF_IX[i+ii;j+jj;k+kk],n)
+     &                               -flux(CHF_IX[i;j;k],n))
+
+         CHF_ENDDO
+      enddo
+
+      return
+      end
+
+
+      subroutine initscal(CHF_FRA[U], CHF_REAL[dx])
+
+      integer CHF_DDECL[i;j;k]
+      REAL_T CHF_DDECL[x;y;z]
+      integer n
+      
+
+      do n=0, CHF_NCOMP[U]-1
+
+         CHF_MULTIDO[U;i;j;k]
+
+           CHF_DTERM[x = dx*(i+half);
+                     y = dx*(j+half);
+                     z = dx*(k+half)]
+
+c  for now, try sinusoidal initial data
+           CHF_DTERM[x = two*Pi*x;
+                     y = two*Pi*y;
+                     z = two*Pi*z]
+
+c           CHF_DTERM[x = Pi*x;
+c                     y = Pi*y;
+c                     z = Pi*z]
+
+
+           U(CHF_IX[i;j;k],n) = CHF_DTERM[sin(x);*sin(y);*sin(z)]
+
+         CHF_ENDDO
+
+      enddo
+
+      return
+      end
+
+
+        subroutine GETRELGRADF(
+     &    CHF_FRA1[du],
+     &    CHF_CONST_FRA1[u],
+     &    CHF_CONST_INT[idir],
+     &    CHF_BOX[loBox],
+     &    CHF_CONST_INT[hasLo],
+     &    CHF_BOX[hiBox],
+     &    CHF_CONST_INT[hasHi],
+     &    CHF_BOX[centerBox])
+
+        integer CHF_DDECL[i   ;j   ;k   ]
+        integer CHF_DDECL[ioff;joff;koff]
+        real_t diff,aver
+
+        CHF_DTERM[
+        ioff = CHF_ID(0,idir);
+        joff = CHF_ID(1,idir);
+        koff = CHF_ID(2,idir)]
+
+c       Perform first difference calculation in the interior.
+
+        CHF_MULTIDO[centerBox;i;j;k]
+          diff = half*(u(CHF_IX[i+ioff;j+joff;k+koff])
+     &                -u(CHF_IX[i-ioff;j-joff;k-koff]))
+          aver = half*(u(CHF_IX[i+ioff;j+joff;k+koff])
+     &                +u(CHF_IX[i-ioff;j-joff;k-koff]))
+          du(CHF_IX[i;j;k]) = diff / aver
+        CHF_ENDDO
+
+c       Perform calculation on the cells adjacent to the domain boundary in
+c       current direction, if required.
+
+        if (hasLo .eq. 1) then
+          CHF_MULTIDO[loBox;i;j;k]
+            diff = (u(CHF_IX[i+ioff;j+joff;k+koff])
+     &             -u(CHF_IX[i     ;j     ;k     ]))
+            aver = half*(u(CHF_IX[i+ioff;j+joff;k+koff])
+     &                  +u(CHF_IX[i     ;j     ;k     ]))
+            du(CHF_IX[i;j;k]) = diff / aver
+          CHF_ENDDO
+        endif
+
+        if (hasHi .eq. 1) then
+          CHF_MULTIDO[hiBox;i;j;k]
+            diff = (u(CHF_IX[i     ;j     ;k     ])
+     &             -u(CHF_IX[i-ioff;j-joff;k-koff]))
+            aver = half*(u(CHF_IX[i     ;j     ;k     ])
+     &                  +u(CHF_IX[i-ioff;j-joff;k-koff]))
+            du(CHF_IX[i;j;k]) = diff / aver
+          CHF_ENDDO
+        endif
+
+        return
+        end
+
+
+        subroutine OLDMAGNITUDEF(
+     &    CHF_FRA1[magdata],
+     &    CHF_CONST_FRA[data],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+        integer iv
+        real_t cur,sum
+
+        CHF_MULTIDO[box;i;j;k]
+          sum = zero
+
+          do iv = 0,CHF_NCOMP[data]-1
+            cur = data(CHF_IX[i;j;k],iv)
+            sum = sum + cur*cur
+          enddo
+
+          magdata(CHF_IX[i;j;k]) = sqrt(sum)
+        CHF_ENDDO
+
+        return
+        end
+

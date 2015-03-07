@@ -1,0 +1,50 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+!!! Purpose: integrate the energy over a box
+
+      subroutine COMPUTEENERGYINBOX( CHF_FRA1[ a_result ],
+     &     CHF_CONST_FRA[ a_Phi ],
+     &     CHF_CONST_FRA[ a_Pi ],
+     &     CHF_BOX[ a_Valid ],
+     &     CHF_CONST_REAL[ a_Lambda ],
+     &     CHF_CONST_REAL[ a_Dx ] )
+
+
+      integer CHF_DDECL[i;j;k],n ,ncomps
+      Real_T psi2,grad,dx2,lambda
+
+      ncomps = CHF_NCOMP[a_Phi]
+
+      dx2=0.125/a_Dx/a_Dx
+      lambda=a_Lambda*0.25
+
+      CHF_MULTIDO[ a_Valid ; i;j;k ]
+      a_result(CHF_IX[i;j;k]) = 0
+      psi2 = 0
+      do n = 0, CHF_NCOMP[a_Phi]-1
+         psi2 = psi2 + a_Phi(CHF_IX[i;j;k],n)**2
+         grad = (a_Phi(CHF_IX[i+1 ; j   ; k  ],n)
+     &        -  a_Phi(CHF_IX[i-1 ; j   ; k  ],n))**2
+     &        + (a_Phi(CHF_IX[i   ; j+1 ; k  ],n)
+     &        -  a_Phi(CHF_IX[i   ; j-1 ; k  ],n))**2
+     &        + (a_Phi(CHF_IX[i   ; j   ; k+1],n)
+     &        -  a_Phi(CHF_IX[i   ; j   ; k-1],n))**2
+
+         a_result(CHF_IX[i;j;k]) = a_result(CHF_IX[i;j;k]) +
+     &        0.5*(a_Pi(CHF_IX[i;j;k],n)**2)+dx2*grad
+      enddo
+
+      a_result(CHF_IX[i;j;k]) = a_result(CHF_IX[i;j;k]) +
+     &     lambda*((psi2-1.0)**2)
+
+      CHF_ENDDO
+
+      return
+      end
+

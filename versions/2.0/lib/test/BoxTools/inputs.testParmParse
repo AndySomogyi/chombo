@@ -1,0 +1,14 @@
+foo1 = 1
+foo2 = 2.25
+foo2 = 2.5
+foo3 = 3
+foo4 = 4 5 6
+foo5 = hello
+foo6 = man plan canal
+foo7 = 7 8 9
+foobool1 = true
+foobool2 = 1
+foobool3 = false
+foobool4 = 0
+foobool5 = TRUE
+foobool6 = FALSE

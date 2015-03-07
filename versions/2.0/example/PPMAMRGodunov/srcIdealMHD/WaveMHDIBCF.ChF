@@ -1,0 +1,363 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+#include "LGintegrator.H"
+
+        subroutine WAVEMHDSETF(
+     &    CHF_REAL[a_smallPressure],
+     &    CHF_CONST_REAL[a_gamma])
+
+#include "EosCommon.fh"
+
+        gamma = a_gamma
+c
+c       This should be examined more closely - TJL
+c
+        a_smallPressure = small * small
+
+        call SetMHDProperties(a_gamma)
+
+        write(6,*) 'FORTRAN COMMON SET', gamma,rgas,wmol
+
+        return
+        end
+
+        subroutine WAVEMHDSETPARAMETERSF(
+     &     CHF_CONST_REAL[a_alpha],
+     &     CHF_CONST_INT[a_pdir],
+     &     CHF_CONST_INT[a_kratio],
+     &     CHF_CONST_INT[a_waveNumber],
+     &     CHF_CONST_REAL[a_pertAmplitude])
+
+#include "WaveCommon.fh"
+
+        alpha = a_alpha;
+        pdir = a_pdir;
+        kratio = a_kratio;
+        waveNumber = a_waveNumber;
+        pertAmplitude = a_pertAmplitude;
+
+        write(6,*) 'FORTRAN WAVE COMMON SET', alpha,pdir,kratio,
+     &     waveNumber, pertAmplitude
+
+        return
+        end
+
+        subroutine WAVEMHDINITF(
+     &     CHF_FRA[U],
+     &     CHF_CONST_REAL[dx],
+     &     CHF_BOX[box])
+
+c        real_t xofy
+        integer klo,khi
+        integer kulo,kuhi
+
+#include "EosCommon.fh"
+#include "WaveCommon.fh"
+
+#if CH_SPACEDIM==2
+        klo = 1
+        khi = 1
+
+        kulo = 1
+        kuhi = 1
+#elif CH_SPACEDIM==3
+        klo = iboxlo2+1
+        khi = iboxhi2+1
+
+        kulo = iulo2+1
+        kuhi = iuhi2+1
+#endif
+        write(6,*) 'WAVEMHDINIT dx ', dx
+        write(6,*) 'WAVEMHDINIT Box ', iboxlo0,iboxhi0, iboxlo1,iboxhi1
+        write(6,*) 'WAVEMHDINIT U ', iulo0,iuhi0, iulo1,iuhi1
+        write(6,*) 'WAVEMHDINIT Parameters ', pdir,kratio, pertAmplitude,
+     &           waveNumber
+
+        call WaveInitialConditions(U,iulo0+1,iuhi0+1,iulo1+1,iuhi1+1,
+     &                             kulo,kuhi,
+     &                             iboxlo0+1,iboxhi0+1,iboxlo1+1,iboxhi1+1,
+     &                             klo,khi,dx,dx,dx,alpha,
+     &                             pdir,kratio,waveNumber,pertAmplitude)
+
+        return
+        end
+
+        subroutine WAVEMHDBCF(
+     &    CHF_FRA[F],
+     &    CHF_CONST_FRA[W],
+     &    CHF_CONST_REAL[time],
+     &    CHF_CONST_INT[lohisign],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[dir],
+     &    CHF_BOX[box])
+
+c        real_t ke,r0,p0,umag
+        real_t p,r
+c        real_t CHF_DDECL[x;y;z]
+c        real_t xofy,rg,pg,ws
+        real_t  uu,vv,ww
+        integer CHF_DDECL[i;j;k]
+        real_t bi,bj,bk
+
+#include "EosCommon.fh"
+
+        write(6,*) 'MHDBC dx ', dx,dir,lohisign
+        write(6,*) 'MHDBC Box ', iboxlo0,iboxhi0, iboxlo1,iboxhi1
+        write(6,*) 'MHDBC W ', iwlo0,iwhi0, iwlo1,iwhi1
+        write(6,*) 'MHDBC F', iflo0,ifhi0, iflo1,ifhi1
+
+        if (dir .eq. 0) then
+          CHF_MULTIDO[box;i;j;k]
+c            if (lohisign .eq. -1) then
+              r = W(CHF_IX[i;j;k],WRHO)
+
+              uu = W(CHF_IX[i;j;k],WVELX)
+              vv = W(CHF_IX[i;j;k],WVELY)
+              ww = W(CHF_IX[i;j;k],WVELZ)
+
+              bi = W(CHF_IX[i;j;k],WBX)
+              bj = W(CHF_IX[i;j;k],WBY)
+              bk = W(CHF_IX[i;j;k],WBZ)
+
+              p = W(CHF_IX[i;j;k],WPRES)
+c            endif
+
+            F(CHF_IX[i;j;k],URHO) = r*uu
+
+            F(CHF_IX[i;j;k],UMOMX) = r*uu*uu + p
+     &                             + half*(bj*bj + bk*bk - bi*bi)
+            F(CHF_IX[i;j;k],UMOMY) = r*uu*vv - bi*bj
+            F(CHF_IX[i;j;k],UMOMZ) = r*uu*ww - bi*bk
+
+            F(CHF_IX[i;j;k],UBX) = zero
+            F(CHF_IX[i;j;k],UBY) = uu*bj - vv*bi
+            F(CHF_IX[i;j;k],UBZ) = uu*bk - ww*bi
+
+            F(CHF_IX[i;j;k],UENG) = uu * (half*r*(uu*uu + vv*vv + ww*ww)
+     &                                  + p / (gamma-one) + p
+     &                                  + (bi*bi + bj*bj + bk*bk))
+     &                            - bi * (uu*bi + vv*bj + ww*bk)
+
+            F(CHF_IX[i;j;k],DIVB) = bi
+
+            F(CHF_IX[i;j;k],UFACE) = uu
+            F(CHF_IX[i;j;k],VFACE) = vv
+            F(CHF_IX[i;j;k],WFACE) = ww
+
+            F(CHF_IX[i;j;k],BXFACE) = bi
+            F(CHF_IX[i;j;k],BYFACE) = bj
+            F(CHF_IX[i;j;k],BZFACE) = bk
+          CHF_ENDDO
+        else
+          CHF_MULTIDO[box;i;j;k]
+c            if (lohisign .eq. -1) then
+              r = W(CHF_IX[i;j;k],WRHO)
+
+              uu = W(CHF_IX[i;j;k],WVELX)
+              vv = W(CHF_IX[i;j;k],WVELY)
+              ww = W(CHF_IX[i;j;k],WVELZ)
+
+              bi = W(CHF_IX[i;j;k],WBX)
+              bj = W(CHF_IX[i;j;k],WBY)
+              bk = W(CHF_IX[i;j;k],WBZ)
+
+              p = W(CHF_IX[i;j;k],WPRES)
+c            endif
+            F(CHF_IX[i;j;k],URHO) = r*vv
+
+            F(CHF_IX[i;j;k],UMOMX) = r*uu*vv - bi*bj
+            F(CHF_IX[i;j;k],UMOMY) = r*vv*vv + p
+     &                             + half*(bi*bi + bk*bk - bj*bj)
+            F(CHF_IX[i;j;k],UMOMZ) = r*vv*ww - bj*bk
+
+            F(CHF_IX[i;j;k],UBX) = vv*bi - uu*bj
+            F(CHF_IX[i;j;k],UBY) = zero
+            F(CHF_IX[i;j;k],UBZ) = vv*bk - ww*bj
+
+            F(CHF_IX[i;j;k],UENG) = vv * (half*r*(uu*uu + vv*vv + ww*ww)
+     &                                  + p / (gamma-one) + p
+     &                                  + (bi*bi + bj*bj + bk*bk))
+     &                            - bj * (uu*bi + vv*bj + ww*bk)
+
+            F(CHF_IX[i;j;k],DIVB) = bj
+
+            F(CHF_IX[i;j;k],UFACE) = uu
+            F(CHF_IX[i;j;k],VFACE) = vv
+            F(CHF_IX[i;j;k],WFACE) = ww
+
+            F(CHF_IX[i;j;k],BXFACE) = bi
+            F(CHF_IX[i;j;k],BYFACE) = bj
+            F(CHF_IX[i;j;k],BZFACE) = bk
+          CHF_ENDDO
+        endif
+
+        return
+        end
+
+        subroutine WAVEMHDSLOPEBCSF(
+     &    CHF_FRA[dW],
+     &    CHF_CONST_FRA[W],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[dir],
+     &    CHF_BOX[loBox],
+     &    CHF_CONST_INT[hasLo],
+     &    CHF_BOX[hiBox],
+     &    CHF_CONST_INT[hasHi])
+
+c        integer CHF_DDECL[i;j;k]
+c        integer CHF_DDECL[ioff;joff;koff]
+c        integer CHF_DDECL[inorm;itan1;itan2]
+        integer spacedim
+
+        spacedim = CH_SPACEDIM
+
+        write(6,*) 'WAVEMHDSLOPEBC dx', dx,dir
+        write(6,*) 'WAVEMHDSLOPEBC has', hasLo,hasHi
+        write(6,*) 'WAVEMHDSLOPEBC LOBox', iloboxlo0,iloboxhi0,
+     &           iloboxlo1,iloboxhi1
+        write(6,*) 'WAVEMHDSLOPEBC HiBox', ihiboxlo0,ihiboxhi0,
+     &           ihiboxlo1,ihiboxhi1
+        write(6,*) 'WAVEMHDSLOPEBC W ', iwlo0,iwhi0, iwlo1,iwhi1
+        write(6,*) 'WAVEMHDSLOPEBC dW ', idwlo0,idwhi0, idwlo1,idwhi1
+
+        return
+        end
+
+        subroutine WAVEMHDPHIINITF(
+     &    CHF_FRA[U],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+
+#include "EosCommon.fh"
+
+        write(6,*) 'WAVEMHDPHIINIT dx ', dx
+        write(6,*) 'WAVEMHDPHIINIT Box ', iboxlo0,iboxhi0, iboxlo1,iboxhi1
+#if CH_SPACEDIM==2
+        write(6,*) 'WAVEMHDPHIINIT U ', iulo0,iuhi0, iulo1,iuhi1
+#elif CH_SPACEDIM==3
+        write(6,*) 'WAVEMHDPHIINIT U ', iulo0,iuhi0, iulo1,iuhi1,iulo2,iuhi2
+#endif
+
+        CHF_MULTIDO[box;i;j;k]
+          U(CHF_IX[i;j;k],0) = zero
+        CHF_ENDDO
+
+        return
+        end
+
+        subroutine WAVEMHDPHIBCLOF(
+     &    CHF_FRA[U],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[dir],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+        real_t bnBdry
+
+        write(6,*) 'WAVEMHDPHIBCLO dx ', dx,dir
+        write(6,*) 'WAVEMHDPHIBCLO Box ', iboxlo0,iboxhi0, iboxlo1,iboxhi1
+        write(6,*) 'WAVEMHDPHIBCLO U ', iulo0,iuhi0, iulo1,iuhi1
+
+        bnBdry = (five/two)/SQRT(four*Pi)
+        bnBdry = 0.0
+
+        if (dir .eq. 0) then
+          CHF_MULTIDO[box;i;j;k]
+c            U(CHF_IX[i+1;j;k],0) = zero
+            U(CHF_IX[i;j;k],0) = U(CHF_IX[i+1;j;k],0)
+          CHF_ENDDO
+        else if (dir .eq. 1) then
+          CHF_MULTIDO[box;i;j;k]
+c            U(CHF_IX[i;j+1;k],0) = zero
+            U(CHF_IX[i;j;k],0) = U(CHF_IX[i;j+1;k],0)
+          CHF_ENDDO
+        else if (dir .eq. 2) then
+          CHF_MULTIDO[box;i;j;k]
+            U(CHF_IX[i;j;k],0) = U(CHF_IX[i;j;k+1],0)
+          CHF_ENDDO
+        endif
+
+        return
+        end
+
+        subroutine WAVEMHDPHIBCHIF(
+     &    CHF_FRA[U],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[dir],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+        real_t bnBdry
+
+c        write(6,*) 'PHIBCHI dx ', dx,dir
+c        write(6,*) 'PHIBCHI Box ', iboxlo0,iboxhi0, iboxlo1,iboxhi1
+c        write(6,*) 'PHIBCHI U ', iulo0,iuhi0, iulo1,iuhi1
+
+        bnBdry = (five/two)/SQRT(four*Pi)
+        bnBdry = 0.0
+
+        if (dir .eq. 0) then
+          CHF_MULTIDO[box;i;j;k]
+c            U(CHF_IX[i-1;j;k],0) = zero
+            U(chf_ix[i;j;k],0) = U(chf_ix[i-1;j;k],0)
+          CHF_ENDDO
+        else if (dir .eq. 1) then
+          CHF_MULTIDO[box;i;j;k]
+c            U(CHF_IX[i;j-1;k],0) = zero
+            U(CHF_IX[i;j;k],0) = U(CHF_IX[i;j-1;k],0)
+          CHF_ENDDO
+        else if (dir .eq. 2) then
+          CHF_MULTIDO[box;i;j;k]
+            U(CHF_IX[i;j;k],0) = U(CHF_IX[i;j;k-1],0)
+          CHF_ENDDO
+        endif
+
+        return
+        end
+
+        subroutine WAVEMHDPRIMBCF(
+     &    CHF_FRA[WG],
+     &    CHF_CONST_FRA[W],
+     &    CHF_CONST_REAL[time],
+     &    CHF_CONST_INT[lohisign],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[dir],
+     &    CHF_BOX[box])
+
+c        real_t ke,r0,p0,umag,p,r
+c        real_t CHF_DDECL[x;y;z]
+c        real_t xofy,rg,pg,ws
+c        real_t  uu,vv,ww
+        integer CHF_DDECL[i;j;k]
+c        real_t bi,bj,bk
+
+#include "EosCommon.fh"
+
+        write(6,*) 'MHDPRIMBC dx ', dx,dir,lohisign
+        write(6,*) 'MHDPRIMBC Box ', iboxlo0,iboxhi0, iboxlo1,iboxhi1
+        write(6,*) 'MHDPRIMBC W ', iwlo0,iwhi0, iwlo1,iwhi1
+        write(6,*) 'MHDPRIMBC F', iWGlo0,iwghi0, iwglo1,iwghi1
+
+        CHF_MULTIDO[box;i;j;k]
+          WG(CHF_IX[i;j;k],WRHO) = W(CHF_IX[i;j;k],WRHO)
+
+          WG(CHF_IX[i;j;k],WVELX) = W(CHF_IX[i;j;k],WVELX)
+          WG(CHF_IX[i;j;k],WVELY) = W(CHF_IX[i;j;k],WVELY)
+          WG(CHF_IX[i;j;k],WVELZ) = W(CHF_IX[i;j;k],WVELZ)
+
+          WG(CHF_IX[i;j;k],WBX) = W(CHF_IX[i;j;k],WBX)
+          WG(CHF_IX[i;j;k],WBY) = W(CHF_IX[i;j;k],WBY)
+          WG(CHF_IX[i;j;k],WBZ) = W(CHF_IX[i;j;k],WBZ)
+
+          WG(CHF_IX[i;j;k],WPRES) = W(CHF_IX[i;j;k],WPRES)
+        CHF_ENDDO
+
+        return
+        end

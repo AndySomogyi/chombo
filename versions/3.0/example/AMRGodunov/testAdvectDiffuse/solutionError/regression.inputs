@@ -1,0 +1,41 @@
+cfl = 0.5
+diffusion_coef = 0.0	
+initial_cfl = 0.1
+verbosity = 1
+max_step = 8
+#max_time = 0.07
+tag_buffer_size = 3
+refine_thresh = 0.05
+regrid_interval = 2 2 2 2 2 2
+max_dt_growth = 1.1
+dt_tolerance_factor = 1.1
+fixed_dt   = -1
+domain_length = 1.0 
+grid_buffer_size = 1
+periodic_bc = 1 1 1 
+do_erroroutput = 1
+testverbosity = 3
+##grid parameters
+max_level = 0
+n_cell =  16 16 16
+
+ref_ratio = 2 2 2 2 
+
+block_factor =  4
+max_grid_size = 64
+fill_ratio = 0.75
+
+checkpoint_interval = -1
+plot_interval = -1
+plot_prefix  = plt
+chk_prefix = chk
+
+blob_center = 0.75 0.5 0.5
+blob_radius = 0.1
+#0 = constant
+#1 = rotating
+advection_vel_type = 1
+
+use_limiting = true
+
+

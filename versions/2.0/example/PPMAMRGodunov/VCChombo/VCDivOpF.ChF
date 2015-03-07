@@ -1,0 +1,313 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+#include "CONSTANTS.H"
+
+C     --------------------------------------------------------------
+C     computes a multi-dimensional operator
+C     L(phi) = D*phi(i) + sum (over idir) [L*phi(i-1)+C*phi(i)+U*phi(i+1)]
+C     
+C     INPUTS/OUTPUTS:
+C     lofphi   <=>  additive operator
+C     phi       =>  phi
+C     region    =>  region on which laplacian is computed 
+C     nComp     =>  number of components in phi,lofphi
+C     idir      =>  evaluation direction    
+C     
+C     Warning: phi, lofphi, alpha, beta  must have the same number
+C     of components.  phi needs one more cell on all sides.
+C     
+C     Yuri Omelchenko, june 17, 2002
+C     ---------------------------------------------------------------
+      subroutine VCDIVOP2LOPHIADD(
+     &     CHF_FRA[lofphi],
+     &     CHF_CONST_FRA[phi],
+     &     CHF_CONST_FRA[diagn],
+     &     CHF_CONST_FRA[lower],
+     &     CHF_CONST_FRA[centr],
+     &     CHF_CONST_FRA[upper],
+     &     CHF_BOX[region],
+     &     CHF_CONST_INT[idir],
+     &     CHF_CONST_INT[redBlack])
+!     ::: local variables
+      integer CHF_DDECL[ii,i;jj,j;kk,k]
+      integer n,ncomp,indtot,imin,imax,istep
+      CHF_DTERM[
+      ii = CHF_ID(idir, 0);
+      jj = CHF_ID(idir, 1);
+      kk = CHF_ID(idir, 2)]
+      ncomp = CHF_NCOMP[phi]
+      do n = 0, ncomp-1
+#if CH_SPACEDIM==3
+       do k=CHF_LBOUND[region; 2], CHF_UBOUND[region; 2]
+#endif
+        do j=CHF_LBOUND[region; 1], CHF_UBOUND[region; 1]
+           imin=CHF_LBOUND[region; 0]
+           imax=CHF_UBOUND[region; 0]
+           if(redBlack.ge.0) then
+             CHF_DTERM[indtot = imin; + j ; + k ]
+             imin = imin + mod(indtot + redBlack, 2)
+             istep = 2
+           else
+             istep = 1
+           endif
+           do i=imin, imax, istep
+             if(idir.eq.0) lofphi(CHF_IX[i;j;k],n) =
+     &                     diagn(CHF_IX[i;j;k],n)*phi(CHF_IX[i;j;k],n)
+             lofphi(CHF_IX[i;j;k],n) = lofphi(CHF_IX[i;j;k],n) + 
+     &       lower(CHF_IX[i;j;k],n)*phi(CHF_IX[i-ii;j-jj;k-kk],n) +
+     &       centr(CHF_IX[i;j;k],n)*phi(CHF_IX[i;j;k],n) +
+     &       upper(CHF_IX[i;j;k],n)*phi(CHF_IX[i+ii;j+jj;k+kk],n) 
+           enddo
+        enddo
+#if CH_SPACEDIM==3
+       enddo
+#endif
+      enddo
+
+      return
+      end
+C     ---------------------------------------------------------------
+C     computes relaxation parameter for the multi-demensional GSRB
+C     INPUTS/OUTPUTS:
+C     lambda   <=> (IA)^-1 == GSRB relaxation parameter
+C     omelchenko, june 17, 2002
+C     ---------------------------------------------------------------
+      subroutine VCDIVOP2INVERSEADD(
+     &           CHF_FRA[lambda],
+     &           CHF_CONST_FRA[diagn],
+     &           CHF_CONST_FRA[centr],
+     &           CHF_BOX[region],
+     &           CHF_CONST_INT[idir])
+!     ::: local variables
+      integer CHF_DDECL[i,ii;j,jj;k,kk]
+      integer n,ncomp,ndim
+      parameter (ndim = CH_SPACEDIM)
+      CHF_DTERM[
+      ii = CHF_ID(idir, 0);
+      jj = CHF_ID(idir, 1);
+      kk = CHF_ID(idir, 2)]
+      ncomp = CHF_NCOMP[lambda]
+      do n = 0, ncomp-1
+#if CH_SPACEDIM==3
+       do k=CHF_LBOUND[region; 2], CHF_UBOUND[region; 2]
+#endif
+        do j=CHF_LBOUND[region; 1], CHF_UBOUND[region; 1]
+         do i=CHF_LBOUND[region; 0], CHF_UBOUND[region; 0]
+            if(idir.eq.0) lambda(CHF_IX[i;j;k],n)=diagn(CHF_IX[i;j;k],n)
+            lambda(CHF_IX[i;j;k],n) =
+     &      lambda(CHF_IX[i;j;k],n) + centr(CHF_IX[i;j;k],n) 
+            if((idir.eq.ndim-1).and.(lambda(CHF_IX[i;j;k],n).ne.zero)) 
+     &         lambda(CHF_IX[i;j;k],n)= one/lambda(CHF_IX[i;j;k],n)
+         enddo
+        enddo
+#if CH_SPACEDIM==3
+      enddo
+#endif
+      enddo
+      return
+      end
+
+C     --------------------------------------------------------------
+C     performs multi-dimensional Red-Black Guass-Siedel on a level 
+C     phi = phi + lambda*(rhs-LofPhi)
+C
+C     INPUTS (=>),  OUTPUTS(<=):
+C     phi      <=> phi
+C     rhs       => rhs
+C     lofphi    => Lphi
+C     region    => region on which to relax
+C     redBlack  => which pass we are on 
+C     
+C     Warning: phi, rhs, lofphi, lambda  must have the same number
+C     of components and span region.  phi needs one more cell on
+C     all sides.
+C     
+C     dtgraves nov 2, 1999
+C     omelchenko, march 15, 2002 
+C     --------------------------------------------------------------
+      subroutine VCDIVOP2GSRB(
+     &     CHF_FRA[phi],
+     &     CHF_CONST_FRA[rhs],
+     &     CHF_CONST_FRA[lofphi],
+     &     CHF_CONST_FRA[lambda],
+     &     CHF_BOX[region],
+     &     CHF_CONST_INT[redBlack])
+!     ::: local variables
+      integer CHF_DDECL[i;j;k]
+      integer n,ncomp,indtot,imin,imax
+      ncomp = CHF_NCOMP[phi]
+      do n = 0, ncomp-1
+#if CH_SPACEDIM==3
+         do k=CHF_LBOUND[region; 2], CHF_UBOUND[region; 2]
+#endif
+            do j=CHF_LBOUND[region; 1], CHF_UBOUND[region; 1]
+               imin = CHF_LBOUND[region; 0]
+               imax = CHF_UBOUND[region; 0]
+               CHF_DTERM[indtot = imin; + j ; + k]
+c              add 0 or 1 to imin => imin+j+k has same parity as redBlack
+               imin = imin + mod(indtot + redBlack, 2)
+               do i = imin, imax, 2
+                  phi(CHF_IX[i;j;k],n)= phi(CHF_IX[i;j;k],n) + 
+     &            (rhs(CHF_IX[i;j;k],n)-lofphi(CHF_IX[i;j;k],n))*
+     &            lambda(CHF_IX[i;j;k],n)
+               enddo
+            enddo
+#if CH_SPACEDIM==3
+         enddo
+#endif 
+      enddo
+      return
+      end
+
+C     --------------------------------------------------------------
+C     omelchenko, june 18, 2002 
+C     The "center" coefficient is coarsened similar to the residual.
+C     --------------------------------------------------------------
+      subroutine VCDIVOP2DEPOSITD(
+     &     CHF_FRA[coarse],
+     &     CHF_CONST_FRA[fine],
+     &     CHF_BOX[b],
+     &     CHF_CONST_INT[ref_ratio],
+     &     CHF_BOX[ bref ])
+c bref is a box that will go from (0,0,0) to (ref_ratio-1)*(1,1,1)
+      integer n,ncomp 
+      integer CHF_DDECL[ic,if,i; jc,jf,j; kc,kf,k]
+      REAL_T ref_scale,fine_sum
+      ncomp = CHF_NCOMP[coarse]
+      ref_scale = one / (ref_ratio**CH_SPACEDIM)
+      do n = 0, ncomp-1
+         CHF_MULTIDO[ b; ic; jc; kc ]
+            fine_sum = 0.
+            CHF_MULTIDO[ bref; i; j; k ]
+            CHF_DTERM[
+                if = ic*ref_ratio + i;
+                jf = jc*ref_ratio + j;
+                kf = kc*ref_ratio + k ]
+                fine_sum = fine_sum + fine( CHF_IX[if;jf;kf], n)
+            CHF_ENDDO
+            coarse(CHF_IX[ic;jc;kc],n) = ref_scale * fine_sum
+         CHF_ENDDO
+      end do
+      return
+      end
+
+C     --------------------------------------------------------------
+C     omelchenko, june 18, 2002 
+C     we apply an additive (Galerkin procedure) to obtain 
+C     coarsened coefficients (D. Knoll, JCP 149, 377, 1999).
+C     Unlike the above reference we use linear interpolation between
+C     fine mesh points. The piecewise constant scheme
+C     won't work for the standard Poisson equation.
+C     --------------------------------------------------------------
+      subroutine VCDIVOP2DEPOSITLCU(
+     &     CHF_FRA[coarse_lo],
+     &     CHF_FRA[coarse_up],
+     &     CHF_FRA[coarse_cr],
+     &     CHF_CONST_FRA[fine_lo],
+     &     CHF_CONST_FRA[fine_up],
+     &     CHF_CONST_FRA[fine_cr],
+     &     CHF_BOX[b],
+     &     CHF_CONST_INT[ref_ratio],
+     &     CHF_BOX[bref],
+     &     CHF_CONST_INT[idir])
+c bref is a box that will go from (0,0,0) to (ref_ratio-1)*(1,1,1)
+      integer n,ncomp,index,indhi 
+      integer CHF_DDECL[ic,if,ii,i; jc,jf,jj,j; kc,kf,kk,k]
+      REAL_T ref_dx,ref_scale,fine_cr_sum,fine_lo_sum,fine_up_sum
+   
+      ncomp = CHF_NCOMP[coarse_cr]
+      ref_dx = 1./ref_ratio 
+      ref_scale = ref_dx**CH_SPACEDIM
+      CHF_DTERM[
+      ii = CHF_ID(idir, 0);
+      jj = CHF_ID(idir, 1);
+      kk = CHF_ID(idir, 2)]
+      CHF_DTERM[indhi= ii*CHF_UBOUND[bref;0]; +jj*CHF_UBOUND[bref;1];
+     &          +kk*CHF_UBOUND[bref;2] ]
+      do n = 0, ncomp-1
+        CHF_MULTIDO[ b; ic; jc; kc ]
+          fine_lo_sum = 0. 
+          fine_up_sum = 0. 
+          fine_cr_sum = 0. 
+          CHF_MULTIDO[ bref; i; j; k ]
+            CHF_DTERM[
+            if = ic*ref_ratio + i;
+            jf = jc*ref_ratio + j; 
+            kf = kc*ref_ratio + k ]
+            CHF_DTERM[index= i*ii; + j*jj; + k*kk] 
+            if(index.eq.0) then
+              fine_lo_sum = fine_lo_sum + 
+     &                      fine_lo(CHF_IX[if;jf;kf],n)*ref_dx
+              fine_cr_sum = fine_cr_sum + 
+     &                      fine_lo(CHF_IX[if;jf;kf],n)*(1.-ref_dx) +
+     &                      fine_lo(CHF_IX[if+ii;jf+jj;kf+kk],n) +
+     &                      fine_cr(CHF_IX[if;jf;kf],n) 
+            else if(index.eq.indhi) then
+              fine_up_sum = fine_up_sum + 
+     &                      fine_up(CHF_IX[if;jf;kf],n)*ref_dx
+              fine_cr_sum = fine_cr_sum + 
+     &                      fine_up(CHF_IX[if;jf;kf],n)*(1.-ref_dx) +
+     &                      fine_up(CHF_IX[if-ii;jf-jj;kf-kk],n) +
+     &                      fine_cr(CHF_IX[if;jf;kf],n) 
+            endif
+          CHF_ENDDO
+          coarse_lo(CHF_IX[ic;jc;kc],n) = ref_scale * fine_lo_sum
+          coarse_up(CHF_IX[ic;jc;kc],n) = ref_scale * fine_up_sum
+          coarse_cr(CHF_IX[ic;jc;kc],n) = ref_scale * fine_cr_sum
+        CHF_ENDDO
+      end do
+      return
+      end
+C     --------------------------------------------------------------
+C     omelchenko, june 18, 2002 
+C     --------------------------------------------------------------
+      subroutine VCDIVOP2GETFLUX(
+     &     CHF_FRA[flux],
+     &     CHF_CONST_FRA[phi],
+     &     CHF_CONST_FRA[lower],
+     &     CHF_CONST_FRA[centr],
+     &     CHF_CONST_FRA[upper],
+     &     CHF_BOX[fluxbox],
+     &     CHF_BOX[edgebox],
+     &     CHF_CONST_REAL[dx],
+     &     CHF_CONST_INT[idir])
+      integer n,ncomp 
+      integer index,indlo,indhi
+      integer CHF_DDECL[i,ii;j,jj;k,kk]
+      Real up,lo
+      ncomp = CHF_NCOMP[flux]
+      CHF_DTERM[
+      ii = CHF_ID(idir, 0);
+      jj = CHF_ID(idir, 1);
+      kk = CHF_ID(idir, 2)]
+
+      CHF_DTERM[indlo= ii*CHF_LBOUND[edgebox;0]; 
+     & +jj*CHF_LBOUND[edgebox;1]; +kk*CHF_LBOUND[edgebox;2] ]
+
+       CHF_DTERM[indhi= ii*CHF_UBOUND[edgebox;0]; 
+     & +jj*CHF_UBOUND[edgebox;1]; +kk*CHF_UBOUND[edgebox;2] ]
+
+      do n = 0, ncomp-1
+      CHF_MULTIDO[ fluxbox; i; j; k ]
+         CHF_DTERM[index= i*ii; + j*jj; + k*kk] 
+         if(index.eq.indlo) then
+           up = -centr(CHF_IX[i;j;k],n)-lower(CHF_IX[i+ii;j+jj;k+kk],n)
+           lo = lower(CHF_IX[i;j;k],n)
+         else if (index.eq.indhi) then
+           up = upper(CHF_IX[i-ii;j-jj;k-kk],n)
+           lo = -centr(CHF_IX[i-ii;j-jj;k-kk],n)
+     &          -upper(CHF_IX[i-2*ii;j-2*jj;k-2*kk],n)
+         else
+           up = upper(CHF_IX[i-ii;j-jj;k-kk],n)
+           lo = lower(CHF_IX[i;j;k],n)
+         endif
+
+         flux(CHF_IX[i;j;k],n) = dx * 
+     &   ( up*phi(CHF_IX[i;j;k],n)-lo*phi(CHF_IX[i-ii;j-jj;k-kk],n) )
+      CHF_ENDDO
+      enddo
+      return
+      end

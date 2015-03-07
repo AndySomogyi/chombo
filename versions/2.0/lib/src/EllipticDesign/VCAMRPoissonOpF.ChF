@@ -1,0 +1,311 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+C     --------------------------------------------------------------
+      subroutine GSRBLEVELLAPVC(
+     &     CHF_FRA[phi],
+     &     CHF_CONST_FRA[LofPhi],
+     &     CHF_CONST_FRA[rhs],
+     &     CHF_CONST_FRA[alpha],
+     &     CHF_CONST_FRA[sumBeta],
+     &     CHF_BOX[region],
+     &     CHF_CONST_REAL[dx],
+     &     CHF_CONST_INT[redBlack])
+
+      REAL_T lambda
+      REAL_T dxinv
+      integer CHF_DDECL[i;j;k]
+      integer n,ncomp,indtot,imin,imax
+
+      dxinv = one/(dx*dx)
+
+c      sum_b = 0.0
+c      do idir = 0, CH_SPACEDIM-1
+c         sum_b = sum_b + two*dxinv
+c      enddo
+
+c      lambda = one/sum_b
+
+      ncomp = CHF_NCOMP[phi]
+      if(ncomp .ne. CHF_NCOMP[rhs]) then
+C         print*, 'GSRBLEVELHELM:phi and rhs incompatible'
+C         stop
+         call MAYDAYERROR()
+      endif
+
+      do n = 0, ncomp - 1
+#if CH_SPACEDIM==3
+         do k=CHF_LBOUND[region; 2], CHF_UBOUND[region; 2]
+#endif
+#if CH_SPACEDIM > 1
+            do j=CHF_LBOUND[region; 1], CHF_UBOUND[region; 1]
+#endif
+               imin = CHF_LBOUND[region; 0]
+               CHF_DTERM[indtot = imin; + j ; + k ]
+C     add 0 or 1 to imin, so that imin+j+k has same parity as redBlack
+C     petermc, 26 april 2001
+               imin = imin + abs(mod(indtot + redBlack, 2))
+               imax = CHF_UBOUND[region; 0]
+               do i = imin, imax, 2
+
+                  lambda = -one/(alpha(CHF_IX[i;j;k],n) 
+     &                         - dxinv*sumBeta(CHF_IX[i;j;k],n))
+
+c     Unrolling the Space dimension loop and getting rid of temporaries
+c     (ii,jj,kk) for performance. (ndk)
+c                 CHF_DTERM[
+c                 lphi =  ((phi(CHF_IX[i+1;j;k],n)
+c     &                   - phi(CHF_IX[i;j;k],n))
+c     &                   -(phi(CHF_IX[i;j;k],n)
+c     &                   - phi(CHF_IX[i-1;j;k],n)))*dxinv;
+c     &                +  ((phi(CHF_IX[i;j+1;k],n)
+c     &                   - phi(CHF_IX[i;j;k],n))
+c     &                   -(phi(CHF_IX[i;j;k],n)
+c     &                   - phi(CHF_IX[i;j-1;k],n)))*dxinv;
+c     &                +  ((phi(CHF_IX[i;j;k+1],n)
+c     &                   - phi(CHF_IX[i;j;k],n))
+c     &                   -(phi(CHF_IX[i;j;k],n)
+c     &                   - phi(CHF_IX[i;j;k-1],n)))*dxinv ]
+
+                  phi(CHF_IX[i;j;k],n) = phi(CHF_IX[i;j;k],n) +
+     &             lambda*(LofPhi(CHF_IX[i;j;k],n)-rhs(CHF_IX[i;j;k],n))
+
+               enddo
+            enddo
+#if CH_SPACEDIM > 1
+         enddo
+#endif
+#if CH_SPACEDIM==3
+      enddo
+#endif
+
+      return
+      end
+      subroutine amrpmulticolorvc(
+     &     chf_fra1[phi],
+     &     chf_const_fra1[rhs],
+     &     chf_const_real[weight],
+     &     chf_const_real[alpha],
+     &     chf_const_real[beta],
+     &     chf_const_realvect[dx],
+     &     chf_box[coloredbox])
+
+      integer chf_ddecl[i;j;k]
+      real_t laplphi, chf_ddecl[dx0;dx1;dx2]
+      
+      chf_dterm[dx0 = beta/(dx(0) * dx(0));
+                dx1 = beta/(dx(1) * dx(1));
+                dx2 = beta/(dx(2) * dx(2));]
+
+      chf_multido[coloredBox;i;j;k;2]
+
+        laplphi = CHF_DTERM[
+     &     (    phi(chf_ix[i+1;j  ;k  ])
+     &     +    phi(chf_ix[i-1;j  ;k  ])
+     $     -two*phi(chf_ix[i  ;j  ;k  ]))*dx0 ;
+     $     +(   phi(chf_ix[i  ;j+1;k  ])
+     &     +    phi(chf_ix[i  ;j-1;k  ])
+     $     -two*phi(chf_ix[i  ;j  ;k  ]))*dx1 ;
+     $     +(   phi(chf_ix[i  ;j  ;k+1])
+     &     +    phi(chf_ix[i  ;j  ;k-1])
+     $     -two*phi(chf_ix[i  ;j  ;k  ]))*dx2 ]
+
+        laplphi = laplphi + alpha * phi(chf_ix[i;j;k])
+
+        phi(chf_ix[i;j;k]) = phi(chf_ix[i;j;k]) +
+     &     weight*(rhs(chf_ix[i;j;k]) - laplphi)
+
+      chf_enddo
+
+
+      return
+      end
+
+C     -----------------------------------------------------------------
+C     subroutine OPERATORLAP
+C     computes 5-point operator for the Helmholtz equation
+C
+C     INPUTS/OUTPUTS:
+C     phi       => phi
+C     lofphi   <=  laplacian
+C     beta      => face-centered coefficient
+C     dx        => cell spacing
+C     dir       => spacial direction we're computing
+C
+C     Warning: phi, lofphi must have the same number
+C     of components and span region.  Phi needs one more cell on
+C     all sides
+C
+C     dfmartin Dec 5, 2006
+C     ------------------------------------------------------------------
+      subroutine OPERATORLAPVC(
+     &     CHF_FRA[lofphi],
+     &     CHF_CONST_FRA[phi],
+     &     CHF_CONST_FRA[beta],
+     &     CHF_BOX[region],
+     &     CHF_CONST_REAL[dx],
+     &     CHF_CONST_INT[dir])
+
+      REAL_T dxinv
+      integer n,ncomp
+
+      integer CHF_DDECL[i;j;k]
+      integer CHF_DDECL[ii;jj;kk]
+
+      CHF_DTERM[
+      ii = CHF_ID(dir,0);
+      jj = CHF_ID(dir,1);
+      kk = CHF_ID(dir,2)]
+
+      ncomp = CHF_NCOMP[phi]
+      if(ncomp .ne. CHF_NCOMP[lofphi]) then
+         call MAYDAYERROR()
+      endif
+
+      if(ncomp .ne. CHF_NCOMP[beta]) then
+         call MAYDAYERROR()
+      endif
+
+      dxinv = one/(dx*dx)
+      do n = 0, ncomp-1
+         CHF_MULTIDO[region; i; j; k]
+
+         lofphi(CHF_IX[i;j;k],n)  = lofphi(CHF_IX[i;j;k],n)
+     &                    + (beta(CHF_IX[i+ii;j+jj;k+kk],n)*(phi(CHF_IX[i+ii;j+jj;k+kk],n)
+     &                                            - phi(CHF_IX[i;j;k],n))
+     &                      -beta(CHF_IX[i;j;k],n)*(phi(CHF_IX[i;j;k],n)
+     &                                  - phi(CHF_IX[i-ii;j-jj;k-kk],n)))*dxinv
+
+         CHF_ENDDO
+      enddo
+
+      return
+      end
+
+C     -----------------------------------------------------------------
+C     subroutine RESTRICTRES
+C     computes restriction of residual to a coarser multgrid level
+C        res[2h] = I[h->2h] (rhs[h] - L(phi[h]))
+C     INPUTS/OUTPUTS:
+C     rhs       =>  rhs[h]
+C     phi       =>  phi[h]
+C     res       <=  res[2h]
+C     region    =>  Box over which rhs is defined (in h index space)
+C     dx        =>  grid spacing in h
+C
+C
+C     bvs  Wed Aug 20, 2003
+C     ------------------------------------------------------------------
+      subroutine RESTRICTRESVC(
+     &     CHF_CONST_FRA[LofPhi],
+     &     CHF_CONST_FRA[rhs],
+     &     CHF_FRA[res],
+     &     CHF_BOX[region],
+     &     CHF_CONST_REAL[dx])
+
+      REAL_T denom, dxinv
+      integer n,ncomp
+
+      integer CHF_DDECL[i;j;k]
+      integer CHF_DDECL[ii;jj;kk]
+
+      ncomp = CHF_NCOMP[LofPhi]
+      dxinv = one/(dx*dx)
+      denom = D_TERM(2, *2, *2)
+
+      do n = 0, ncomp-1
+         CHF_MULTIDO[region; i; j; k]
+         CHF_DTERM[
+         ii = (i-abs(mod(i,2)))/2;
+         jj = (j-abs(mod(j,2)))/2;
+         kk = (k-abs(mod(k,2)))/2]
+         res(CHF_IX[ii;jj;kk],n) = res(CHF_IX[ii;jj;kk],n)
+     &       + (rhs(CHF_IX[i;j;k],n) - LofPhi(CHF_IX[i;j;k],n))/denom
+
+         CHF_ENDDO
+      enddo
+
+      return
+      end
+
+C     -----------------------------------------------------------------
+C     subroutine PROLONG
+C     computes prolongation of correction to finer level
+C       phi[h] += I[mh->h](coarse[mh])
+C     INPUTS/OUTPUTS:
+C     m         =>  refinement ratio
+C     rhs       <=  rhs[h]
+C     coarse    =>  coarse[2h]
+C     region    =>  Box over which phi is valid (in h index space)
+C
+C
+C     bvs  Wed Aug 20, 2003
+C     ------------------------------------------------------------------
+      subroutine PROLONGVC(
+     &    CHF_FRA[phi],
+     &    CHF_CONST_FRA[coarse],
+     &    CHF_BOX[region],
+     &    CHF_CONST_INT[m])
+
+      INTEGER ncomp, n
+      integer CHF_DDECL[i;j;k]
+      integer CHF_DDECL[ii;jj;kk]
+
+      ncomp = CHF_NCOMP[phi]
+      do n = 0, ncomp-1
+          CHF_MULTIDO[region; i; j; k]
+          CHF_DTERM[
+          ii = (i-abs(mod(i,m)))/m;
+          jj = (j-abs(mod(j,m)))/m;
+          kk = (k-abs(mod(k,m)))/m]
+          phi(CHF_IX[i;j;k],n) =  phi(CHF_IX[i;j;k],n) +
+     &        coarse(CHF_IX[ii;jj;kk],n)
+         CHF_ENDDO
+      enddo
+
+      return
+
+      end
+
+
+c -------------------------------------------------------------
+c  utility function -- increments lhs with average from  faces 
+c  to cell-centers of rhs in dir direction
+c
+c  lhs <=> cell-centered data to be incremented
+c  rhs  => face-centered data to be averaged to cell-centers
+c  box  => cell-centered box over which to operate
+c  dir  => direction to do averaging
+c --------------------------------------------------------------
+      subroutine SUMFACES(CHF_FRA[lhs],
+     &                    CHF_CONST_FRA[rhs],
+     &                    CHF_BOX[box],
+     &                    CHF_INT[dir],
+     &                    CHF_REAL[scale])
+
+      REAL_T sumVal
+      integer CHF_DDECL[i;j;k]
+      integer CHF_DDECL[ii;jj;kk]
+      integer n
+
+      CHF_DTERM[
+      ii = CHF_ID(0,dir);
+      jj = CHF_ID(1,dir);
+      kk = CHF_ID(2,dir)]
+
+      do n = 0, CHF_NCOMP[lhs]-1
+         CHF_MULTIDO[box;i;j;k]
+           sumVal = (rhs(CHF_IX[i+ii;j+jj;k+kk],n)
+     &              +rhs(CHF_IX[i;j;k],n))
+           lhs(CHF_IX[i;j;k],n) = lhs(CHF_IX[i;j;k],n) + scale*sumVal
+         CHF_ENDDO
+      enddo
+
+      return
+      end
+
+         

@@ -1,0 +1,95 @@
+#!/bin/csh -f
+#
+# runtwo {plm | ppm} {2d | 3d} testname wave res
+#
+# Run the computation for one wave number and two resolutions - "res" and
+# "res/2".  Run both computations for one timestep equal to the timestep
+# determined by the computation at resolution "res".
+#
+
+# Get the predictor step to use, plm or ppm, and the dimension, 2d or 3d
+# and the test to use
+set pred=${1}
+set dim=${2}
+set testname=${3}
+
+# Get the wave # of the plane wave
+set wave=(${4})
+
+# Get the larger resolution for the computation
+set bigres=${5}
+
+# Make sure there is a "results" directory
+if (! -e results) then
+  mkdir results
+endif
+
+# This is the computation being run
+set progdir=../../../execPolytropic
+set progbase=amrGodunov
+
+# Get the executable name
+set ndim=`echo ${dim} | sed -e 's/[dD]//'`
+set config=`make -f GNUmakefile.config DIM=${ndim} DEBUG=FALSE config`
+set prog=${progdir}/${progbase}${config}.ex
+
+# Timestep has not been determined
+set dt=""
+
+foreach i (1 2)
+  # Indicate the computation is starting
+  echo -n "${i}..."
+
+  # Current resolution
+  set res=`echo ${bigres} ${i} | awk '{print $1 / $2;}'`
+
+  # Generate the basename for all the files
+  set fbwave=`echo ${wave} | sed -e 's/ /./g'`
+  set fbres=`echo ${res} | awk '{printf("%04d",$1);}'`
+  set filebase=results/trunc.${pred}.${testname}.${fbwave}.${fbres}.${i}
+
+  # Generate the inputs and output filenames
+  set filein=${filebase}.${dim}.inputs
+  set fileout=${filebase}.${dim}.out
+
+  # If there are less than 3 wave numbers, add wave numbers equal to zero until
+  # there are 3 wave numbers
+  set cwave=(${wave})
+  set n=${#wave}
+  while ("${n}" < 3)
+    set cwave=(${cwave} 0)
+    @ n++
+  end
+
+  # One quarter the resolution for y (and z) in some problems
+  set res4=`expr ${res} / 4`
+
+  # Generate the "inputs" file the computation will use
+  sed -e "s@PREDICTOR@$pred@g"                \
+      -e "s@NUMCELLS@$res@g"                  \
+      -e "s@CELLS4@$res4@g"                   \
+      -e "s@XWAVE@$cwave[1]@g"                \
+      -e "s@YWAVE@$cwave[2]@g"                \
+      -e "s@ZWAVE@$cwave[3]@g"                \
+      -e "s@FILEBASE@$filebase@g"             \
+      -e "s@FIXEDDT@$dt@g"                    \
+    < template.${testname}.inputs             \
+    > ${filein}
+
+  # If a (fixed) timestep has been determined, use it
+  if ("${dt}" != "") then
+    sed -e "s@^# godunov.fixed_dt@godunov.fixed_dt@g" \
+      < ${filein}                                     \
+      > ${filein}.tmp
+    /bin/mv -f ${filein}.tmp ${filein}
+  endif
+
+  # Run the computation, save the output, and compress the resulting datafile
+  ${prog} ${filein} > ${fileout}
+  gzip -f ${filebase}.*hdf5
+
+  # If a (fixed) timestep has not been determined, get one
+  if ("${dt}" == "") then
+    set dt=`grep 'dt = ' ${fileout} | awk '{print $NF;}'`
+  endif
+end

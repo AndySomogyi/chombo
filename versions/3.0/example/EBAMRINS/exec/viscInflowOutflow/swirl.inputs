@@ -1,0 +1,120 @@
+#restart_file          = check1300.3d.hdf5
+#max_step  	      = 1
+max_step  	      = 10
+#max_step  	      = 0
+max_time              = 100000.0
+
+mg_relax_type  = 2
+mg_relax_lazy  = true
+mg_num_smooths = 4
+#mg_num_smooths = 16
+mg_bottom_solver = 0
+mg_num_precond = 4
+mg_num_cycles  = 1
+mg_hang        = 1.0e-1
+mg_tolerance   = 1.0e-10
+mg_norm_thresh = 1.0e-15
+mg_iter_max    = 100
+
+tag_on_scalar         = 0
+
+# kinematic viscosity in mm*mm/sec
+#viscosity             = 15.1
+#density=g/ml or g/cm^3
+#density = 1.0
+# dynamic viscosity in poise or g/(cm-sec)
+#dynamicViscosity = .03 - .04
+# kinematic viscosity of air in cm*cm/sec
+viscosity             = 0.15
+#refine_threshold      = 5.0
+
+#viscosity             = 0.0005
+refine_threshold      = 7.0
+
+do_slip_walls         = 0
+
+use_limiting          = 1
+# length in cm (6.53cm inlet)
+domain_length = 12.0 12.0 12.0
+origin = -6.0 -6.0 -6.0
+# from old
+#domain_length         = 4.0
+do_regrid_smoothing = false
+
+max_level	      = 1
+#n_cell                = 32 12 12
+#n_cell                = 64 24 24
+#n_cell                = 64 32 32
+n_cell                =  64 64 64
+#n_cell                =  128 64 64
+#n_cell                =  128 128 128
+#n_cell                = 256 256 256
+#n_cell                = 512 192 192
+ref_ratio	      = 2 2 2 2
+#ref_ratio	      = 4 4 4 4
+num_filter_iterations  = 1
+num_gphi_iterations    = 1
+num_init_iterations    = 1
+
+
+checkpoint_interval   = 16
+plot_interval	      = 16
+max_grid_size	      = 16
+fill_ratio	      = 0.7
+block_factor	      = 8
+#regrid_interval	= 2
+regrid_interval	      = 16
+##this has to be bigger than one!
+max_dt_grow	      = 1.1  
+cfl		      = 0.75
+init_cfl	      = 0.5
+verbosity	      = 3
+nesting_radius	      = 2
+#tag_buffer	      = 4
+tag_buffer	      = 2
+tag_shrinkdomain      = 16
+flow_dir	      = 0
+spot_center	      = 0.25 0.5 0.25
+spot_radius	      = 0.25
+# velocity in cm/sec (set up for Re=100)
+#inflow_vel	      = .459
+# velocity in cm/sec (set up for Re=300)
+#inflow_vel	      = 0.1
+# velocity in cm/sec for slower outside of chamber flow
+inflow_vel	      = 10.0
+poisselle_inflow = false
+streak_radius = 0.02
+num_streaks   = 5	
+perturbation_eps      = 0.0
+perturbation_freq     = 2.0
+
+
+# 18 swirl burner
+which_geom = 18
+# Outer chamber dimensions
+outer_height = 9.0
+outer_radius = 2.5
+outer_thick  = 0.3
+outer_offset = 0.0
+
+# Inner chamber dimensions
+inner_height = 3.0
+inner_radius = 1.775
+inner_thick  = 0.06
+
+# Inner plate
+plate_height = 0.5
+plate_thick  = 0.12
+
+# Inner plate holes
+do_holes = 1
+hole_radius = 0.18
+hole_space  = 0.45
+
+# Vanes
+vane_num    = 8
+vane_offset = 0.5
+vane_thick  = 0.09
+vane_norm   = 1.00 2.00 0.00
+
+

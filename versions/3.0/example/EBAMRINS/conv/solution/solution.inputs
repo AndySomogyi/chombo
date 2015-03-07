@@ -1,0 +1,75 @@
+#max steps at finest level
+viscosity             = 0.000
+do_slip_walls         = 1	
+poisselle_inflow = false
+#no maxTime here.  controlled by step, dt
+use_limiting          = 0
+domain_length         = 1.0
+max_level	      = 0
+num_filtrations       = 0
+
+##fixed step at finest level. negative for no fixed step
+#this is the coarsest box of the coarsest level
+#max_step  	      = 1
+#fixed_dt              = -1
+fixed_dt              = 3.2e-3
+n_cell                = 16 16 16
+max_step  	      = 16
+
+#fixed_dt              = 1.6e-3
+#n_cell                =  32 32 32
+#max_step  	      = 32
+
+#fixed_dt              = 8e-4
+#n_cell                = 64 64 64 
+#max_step  	      = 64
+
+#fixed_dt              = 4e-4
+#n_cell                = 128 128 128
+#max_step              = 128
+
+#fixed_dt              = 2e-4
+#n_cell                = 256 256 256
+#max_step              = 256
+
+#fixed_dt              = 1e-4
+#n_cell                = 512 512 512
+#max_step              = 512
+
+ref_ratio	      = 2 2 2 2
+
+checkpoint_interval   = 10
+plot_interval	      = 10
+max_grid_size	      = 16
+#max_grid_size	      = 1024
+fill_ratio	      = 0.7
+block_factor	      = 8
+regrid_interval	      = 2
+##this has to be bigger than one!
+max_dt_grow	      = 1.1  
+cfl		      = 0.5
+init_cfl	      = 0.5
+refine_threshold      = 0.1
+verbosity	      = 1
+nesting_radius	      = 2
+tag_buffer	      = 2
+flow_dir	      = 0
+spot_center	      = 0.15 0.5 0.25
+spot_radius	      = 0.1
+inflow_vel	      = 1.0
+
+do_error_output  = 1
+test_verbosity = 3
+###geometry flag
+## 0 is all regular
+#which_geom = 0
+
+## 5 is a sphere
+which_geom = 5
+
+##sphere stuff
+sphere_radius = 0.1
+#sphere_center = 0.36 0.5 0.5
+sphere_center = 0.4 0.4 0.4
+
+

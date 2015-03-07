@@ -1,0 +1,67 @@
+#problem independent stuff
+artificial_viscosity = 0.3
+cfl = 0.5
+use_mass_redist = 1
+initial_cfl = 0.05
+verbosity = 1
+max_step = 20
+#max_step = 0
+max_time = 0.7
+tag_buffer_size = 1
+grid_buffer_size = 2
+refine_thresh = 0.1
+regrid_interval = 2 2 2 2 2 2
+max_dt_growth = 1.1
+dt_tolerance_factor = 1.1
+fixed_dt   = -1
+gamma = 1.4
+domain_length = 1.0 1.0 1.0 
+
+#number you multiply r0 by to get floor
+smallness = 1.0e-8
+
+###explosion problem defns
+###corresponds to mach 10
+explosion_center = 0.0 0.0 0.0
+explosion_size = 0.25
+explosion_p0 = 1.0	
+explosion_r0 = 1.0	
+explosion_p1 = 116.5
+explosion_r1 = 5.714	
+
+#ebis_file = sphere128.3d.hdf5
+#ebis_file = sphere128.2d.hdf5
+
+max_level = 1
+n_cell =  64 64 64
+ref_ratio = 2 2 2 2 2 2 2
+block_factor =  4
+max_grid_size = 16
+fill_ratio = 0.75
+
+###file output stuff
+checkpoint_interval = -1
+plot_interval = -1
+#plot_interval = 40
+plot_prefix  = plt
+chk_prefix = chk
+
+###slope switches
+use_fourth_order_slopes = 1
+use_flattening = 1
+use_art_visc   = 1
+
+#########eb specific stuff#############
+
+redist_radius = 1
+
+###geometry flag
+## 5 is a sphere
+which_geom = 5
+
+##sphere stuff
+sphere_radius = 0.1
+sphere_center = 0.5 0.36 0.5
+
+
+

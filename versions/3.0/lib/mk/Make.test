@@ -1,0 +1,33 @@
+# -*- Mode: Makefile; Modified: "Fri 01 Oct 2004 15:47:44 by dbs"; -*- 
+
+### This file should be 'include'd in the GNUmakefile for a Chombo test
+### directory _after_ the 'ebase' and 'LibNames' variables are defined.
+
+## Variables required:
+##   ebase: names of files containing main programs to build (without extension)
+##   CHOMBO_HOME: path to the "Chombo/lib" directory (absolute or relative from the 
+##                current "test" subdir
+##   LibNames: names of Chombo libraries needed by this program, in order 
+##   of search. Note that there is no need to include BaseTools, because it 
+##   is automatically appended to LibNames
+
+include $(CHOMBO_HOME)/mk/Make.defs
+
+.PHONY: usage all test run
+
+usage:
+	@echo "This makefile supports targets:"
+	@echo "     all test run $(ebase) usage "
+
+# The `all-test', `run-only', `test-only' and $(ebase) targets are defined in `Make.rules'
+
+all: all-test
+
+test: test-only
+
+# tell program to run quietly unless user overrides on the command line
+VERBOSE = -q
+
+run: run-only
+
+include $(CHOMBO_HOME)/mk/Make.rules

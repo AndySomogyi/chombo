@@ -1,0 +1,65 @@
+#!/bin/csh -f
+#
+# errone {plm | ppm} {2d | 3d} testname wave prevres curres minres
+#
+# Compute the error in the computation for one wave number and a singe pair of
+# resolutions
+#
+
+# Get the predictor step to use, plm or ppm, and the dimension, 2d or 3d
+set pred=${1}
+set dim=${2}
+set testname=${3}
+
+# Get the wave # of the plane wave
+set wave="${4}"
+
+# Get the previous and current resolutions for the computation
+set prevres=${5}
+set curres=${6}
+set minres=${7}
+
+# Make sure there is a "results" directory
+if (! -e results) then
+  mkdir results
+endif
+
+# Generate the basename for all the files
+set fbwave=`echo "${wave}" | sed -e 's/ /./g'`
+set filebase=results/soln.${pred}.${testname}.${fbwave}
+
+# Generate the basename for the current resolution
+set fbcurres=`echo ${curres} | awk '{printf("%04d",$1);}'`
+set filebasecur=${filebase}.${fbcurres}
+
+# Generate the basename for the previous resolution
+set fbprevres=`echo ${prevres} | awk '{printf("%04d",$1);}'`
+set filebaseprev=${filebase}.${fbprevres}
+
+# The names for the uncompressed data files
+set curfile=results/cur$$.hdf5
+set prevfile=results/prev$$.hdf5
+
+# Number of times steps taken
+set curnumsteps=`echo ${curres} | awk '{printf("%04d",$1/4);}'`
+set prevnumsteps=`echo ${prevres} | awk '{printf("%04d",$1/4);}'`
+
+# Uncompress the data files for both resolutions
+zcat ${filebasecur}.${curnumsteps}.${dim}.hdf5.gz   > ${curfile}
+zcat ${filebaseprev}.${prevnumsteps}.${dim}.hdf5.gz > ${prevfile}
+
+# Generate the filename for the solution error summary output
+set filebaseerr=${filebase}.${fbprevres}.${fbcurres}.${dim}.err
+
+# The name of the solution error file
+set errfile=${filebaseerr}.hdf5
+
+# Compute the error (difference) between the two data files and save the
+# results
+diffem ${curfile} ${prevfile} ${errfile} ${dim} > ${filebaseerr}
+
+# Compress the error file
+gzip -f ${errfile}
+
+# Remove the temporary HDF5 file - cleaning up
+/bin/rm -f ${curfile} ${prevfile}

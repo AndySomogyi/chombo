@@ -1,0 +1,76 @@
+#!/bin/csh -f
+#
+# diffem file1 file2 difffile [{2 | 3 | 2d | 3d} [same]]
+#
+# Compute the difference between to Chombo HDF5 files, "file1" and "file2"
+# using the utility "ChomboCompare/compare".  The result is stored in
+# "difffile" and summaries/norms are output to stdout/stderr.  It is assumed
+# that "file1" is higher resolution than "file2".
+#
+# The final argument, "same", if present, indicates that the files being
+# differenced are the same size (resolution) and layout.
+#
+
+# ChomboCompare directory
+set compdir=../../../../../lib/util/ChomboCompare
+set compname=compare
+
+# Try to determine the dimension of the data if it is not given explicitly
+set temp=${1:r}
+if ($#argv < 4) then
+  set dim=${temp:e}
+else
+  set dim=${4}
+endif
+
+# Check for the last argument - same size (resolution) and layout
+set samesize=0
+if ($#argv >= 5) then
+  if ("${5}" == "same") then
+    set samesize=1
+  endif
+endif
+
+# Make the dimension "2d" or "3d" - if possible
+set dim=`echo "${dim}"                                          \
+         | tr '[A-Z]' '[a-z]'                                 \
+         | awk '/^[0-9][0-9]*$/  { printf("%dd",$0); next; }  \
+                /^[0-9][0-9]*d$/ { print $0;         next; }'`
+
+# While the dimension is not "2d" or "3d", ask for the dimension
+while ("${dim}" != "2d" && "${dim}" != "3d")
+  echo -n "Dimension? "
+  set dim=`echo "$<"                                            \
+           | tr '[A-Z]' '[a-z]'                                 \
+           | awk '/^[0-9][0-9]*$/  { printf("%dd",$0); next; }  \
+                  /^[0-9][0-9]*d$/ { print $0;         next; }'`
+end
+
+# Determine which "compare" to use, where to store the "inputs" file it needs,
+# "tmp", the datafiles to compare, and where the difference is stored
+
+# Get the executable name
+set ndim=`echo ${dim} | sed -e 's/[dD]//'`
+set config=`make -f GNUmakefile.config DIM=${ndim} DEBUG=FALSE config`
+set compare=${compdir}/${compname}${config}.ex
+
+set tmp=/tmp/diffem$$
+set file1=${1}
+set file2=${2}
+set difffile=${3}
+
+# Create the "inputs" file for "compare" using a template file
+sed -e "s@SAMESIZE@$samesize@"   \
+    -e "s@EXACTROOT@$file1@"    \
+    -e "s@COMPUTEDROOT@$file2@" \
+    -e "s@DIFFFILE@$difffile@"  \
+  < diffem.template             \
+  > ${tmp}
+
+# Compare the data files
+${compare} ${tmp}
+
+# If successful, delete the "inputs" file
+if ("${status}" == 0) then
+  /bin/rm -f ${tmp}
+endif

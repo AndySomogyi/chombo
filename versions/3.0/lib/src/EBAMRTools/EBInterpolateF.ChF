@@ -1,0 +1,680 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+ccccccccccccccccccccccccccccccc
+c     piecewise constant interpolation
+c     bref is a box that will go from(0,0,0) to(refratio-1)*(1,1,1)
+cccccccccccccccccccccccccccc
+#include "CONSTANTS.H"
+      subroutine ebinterpconstant(
+     &     CHF_FRA1[fine],
+     &     CHF_CONST_FRA1[coarse],
+     &     CHF_BOX[b],
+     &     CHF_CONST_INT[refratio],
+     &     CHF_BOX[bref]
+     &     )
+
+      integer CHF_DDECL[icc; jcc; kcc]
+      integer CHF_DDECL[iff; jff; kff]
+      integer CHF_DDECL[ii; jj; kk]
+
+c     compute on the refined box of each coarse point
+      CHF_MULTIDO[b; icc; jcc; kcc]
+      CHF_MULTIDO[bref; ii; jj; kk]
+
+      CHF_DTERM[
+      iff = icc*refratio + ii;
+      jff = jcc*refratio + jj;
+      kff = kcc*refratio + kk]
+
+      fine(CHF_IX[iff;jff;kff]) = coarse(CHF_IX[icc;jcc;kcc])
+
+      CHF_ENDDO
+      CHF_ENDDO
+
+      return
+      end
+
+cccccccccccccccccccccc
+c     calculate slopes with central difference formula
+cccccccccccccccccccccc
+      subroutine ebcentralslope(
+     &     CHF_FRA1[slope],
+     &     CHF_CONST_FRA1[state],
+     &     CHF_BOX[b],
+     &     CHF_CONST_INT[dir]
+     &     )
+
+      integer CHF_DDECL[i,ii; j,jj; k,kk]
+
+      CHF_DTERM[
+      ii = CHF_ID(0,dir);
+      jj = CHF_ID(1,dir);
+      kk = CHF_ID(2,dir)]
+
+      CHF_MULTIDO[b; i; j; k]
+
+      slope(CHF_IX[i;j;k]) = half *(
+     &     state(CHF_IX[i+ii; j+jj; k+kk]) -
+     &     state(CHF_IX[i-ii; j-jj; k-kk]))
+
+      CHF_ENDDO
+
+      return
+      end
+cccccccccccccccccccc
+c     calculate slopes with high one-sided difference formula
+cccccccccccccccccccc
+      subroutine ebhisideslope(
+     &     CHF_FRA1[slope],
+     &     CHF_CONST_FRA1[state],
+     &     CHF_BOX[b],
+     &     CHF_CONST_INT[dir]
+     &     )
+
+      integer CHF_DDECL[i,ii; j,jj; k,kk]
+
+      CHF_DTERM[
+      ii = CHF_ID(0,dir);
+      jj = CHF_ID(1,dir);
+      kk = CHF_ID(2,dir)]
+
+      CHF_MULTIDO[b; i; j; k]
+
+      slope(CHF_IX[i;j;k]) =
+     &     state(CHF_IX[i+ii;j+jj;k+kk]) -
+     &     state(CHF_IX[i   ;j   ;k   ])
+
+      CHF_ENDDO
+
+      return
+      end
+c
+c     calculate slopes with low one-sided difference formula
+c
+      subroutine eblosideslope(
+     &     CHF_FRA1[slope],
+     &     CHF_CONST_FRA1[state],
+     &     CHF_BOX[b],
+     &     CHF_CONST_INT[dir]
+     &     )
+
+      integer CHF_DDECL[i,ii; j,jj; k,kk]
+
+      CHF_DTERM[
+      ii = CHF_ID(0,dir);
+      jj = CHF_ID(1,dir);
+      kk = CHF_ID(2,dir)]
+
+      CHF_MULTIDO[b; i; j; k]
+
+      slope(CHF_IX[i;j;k]) =
+     &     state(CHF_IX[i   ;j   ;k   ]) -
+     &     state(CHF_IX[i-ii;j-jj;k-kk])
+
+      CHF_ENDDO
+
+      return
+      end
+
+c     cccccccccccccc
+c     maxminmod limiting
+c     cccccccccccccccc
+
+      subroutine ebmaxminmod(
+     &     CHF_FRA1[mmslope],
+     &     CHF_CONST_FRA1[loslope],
+     &     CHF_CONST_FRA1[hislope],
+     &     CHF_BOX[slopebox]
+     &     )
+
+      integer CHF_DDECL[i;j;k]
+      REAL_T deltal, deltar, mono, rsign, finslope
+
+      CHF_MULTIDO[slopebox; i; j; k]
+
+      deltal = loslope(CHF_IX[i;j;k])
+      deltar = hislope(CHF_IX[i;j;k])
+      mono = deltal*deltar
+
+      if(mono .gt. zero) then
+         rsign = sign(one, deltal + deltar)
+         finslope = rsign*(min(abs(deltal), abs(deltar)))
+      else
+         finslope = zero
+      endif
+
+      mmslope(CHF_IX[i;j;k]) = finslope
+
+      CHF_ENDDO
+
+      return
+      end
+ccccccccccccccccccccccccccccccccccccccccc
+c     piecewise bi-(tri-)linear interpolation to "fine" assuming that
+c     piecewise constant interpolation has already been done
+c     bref is a box that will go from(0,0,0) to(refratio-1)*(1,1,1)
+ccccccccccccccccccccccccccccccccccccccccc
+      subroutine ebinterplinear(
+     &     CHF_FRA1[fine],
+     &     CHF_CONST_FRA1[slope],
+     &     CHF_BOX[b],
+     &     CHF_CONST_INT[dir],
+     &     CHF_CONST_INT[refratio],
+     &     CHF_BOX[bref]
+     &     )
+
+      integer CHF_DDECL[icc; jcc; kcc]
+      integer CHF_DDECL[iff; jff; kff]
+      integer CHF_DDECL[ii; jj; kk]
+      integer id
+
+      REAL_T dxf
+
+c     compute on the refined box of each coarse point
+      CHF_MULTIDO[b; icc; jcc; kcc]
+
+      CHF_MULTIDO[bref; ii; jj; kk]
+
+      CHF_DTERM[
+      iff = icc*refratio + ii;
+      jff = jcc*refratio + jj;
+      kff = kcc*refratio + kk]
+
+      CHF_DTERM[
+      if(dir .eq. 0) then
+         id = ii;
+      else if(dir .eq. 1) then
+         id = jj;
+      else if(dir .eq. 2) then
+         id = kk]
+      endif
+      dxf = -half +((id+half) / refratio)
+
+      fine(CHF_IX[iff;jff;kff]) =
+     &     fine(CHF_IX[iff;jff;kff]) +
+     &     dxf*slope(CHF_IX[icc; jcc; kcc])
+
+      CHF_ENDDO
+      CHF_ENDDO
+
+      return
+      end
+ccccccccccccccccccccccccccccccc
+c  On interior of domain we can do a smoother version of the interp. We do:
+c    phi = a*x^2 + b*y^2 + c*x + d*y + e [+f*z^2+g*z];
+c    We fit this polynomial by matching slopes on all 4 [or 6 in 3d] faces and also
+c    fit the integral over the coarse cell so it's equal to the coarse value
+c    To set each fine value we:
+c      1. Set the fine value = the polynomial value from above
+c      2. Check the integral fit, and subsequently enforce this condition manually
+cccccccccccccccccccccccccccc
+      subroutine ebinterpsmootherlinear(
+     &     CHF_FRA1[fine],
+     &     CHF_CONST_FRA1[coarse],
+     &     CHF_BOX[b],
+     &     CHF_CONST_INT[refratio],
+     &     CHF_BOX[bref]
+     &     )
+
+      real    c111,ave,fn,overEachFine
+      real    CHF_DDECL[c011,c211;c101,c121;c110,c112]
+      real    CHF_DDECL[x; y; z]
+      real    CHF_DDECL[a,c,e; b,d; f,g]
+      integer CHF_DDECL[icc; jcc; kcc]
+      integer CHF_DDECL[iff; jff; kff]
+      integer CHF_DDECL[ii; jj; kk]
+
+c     compute on the refined box of each coarse point
+      CHF_MULTIDO[b; icc; jcc; kcc]
+
+c     get the coarse values
+      c111 = coarse(CHF_IX[icc  ;jcc  ;kcc  ])
+      c011 = coarse(CHF_IX[icc-1;jcc  ;kcc  ])
+      c211 = coarse(CHF_IX[icc+1;jcc  ;kcc  ])
+      c101 = coarse(CHF_IX[icc  ;jcc-1;kcc  ])
+      c121 = coarse(CHF_IX[icc  ;jcc+1;kcc  ])
+
+#if (CH_SPACEDIM == 3)
+      c110 = coarse(CHF_IX[icc  ;jcc  ;kcc-1])
+      c112 = coarse(CHF_IX[icc  ;jcc  ;kcc+1])
+#endif
+
+c     compute the polynomial coefficients
+      CHF_DTERM[
+      a = (c011-two*c111+c211)/two
+      c = (c211         -c011)/two;
+      b = (c101-two*c111+c121)/two
+      d = (c121         -c101)/two;
+      f = (c110-two*c111+c112)/two
+      g = (c112         -c110)/two]
+
+#if (CH_SPACEDIM == 2)
+      e = c111 - (a+b)/twelve
+#elif (CH_SPACEDIM == 3)
+      e = c111 - (a+b+f)/twelve
+#endif
+      ave = zero
+      CHF_MULTIDO[bref; ii; jj; kk]
+
+      CHF_DTERM[
+      iff = icc*refratio + ii;
+      jff = jcc*refratio + jj;
+      kff = kcc*refratio + kk]
+
+c     evaluate the polynomial at each fine cell
+      x = real(ii)/refratio + one/(refratio*two) - half
+      y = real(jj)/refratio + one/(refratio*two) - half
+      fn = a*(x**2) + b*(y**2) + c*x + d*y + e
+#if (CH_SPACEDIM == 3)
+      z = real(kk)/refratio + one/(refratio*two) - half
+      fn = fn + f*(z**2) + g*z
+#endif
+      fine(CHF_IX[iff;jff;kff]) = fn
+      ave = ave + fn
+
+      CHF_ENDDO
+      ave = ave/(refratio**CH_SPACEDIM)
+
+c     pass through the fine vofs and enforce that the fine average is equal to the coarse value
+      overEachFine = (ave - c111)/(refratio**CH_SPACEDIM)
+c      overEachFine = 0.0
+      CHF_MULTIDO[bref; ii; jj; kk]
+
+      CHF_DTERM[
+      iff = icc*refratio + ii;
+      jff = jcc*refratio + jj;
+      kff = kcc*refratio + kk]
+c     subtract off the difference so that our fine cells average to the coarse value
+      fn = fine(CHF_IX[iff;jff;kff]) - overEachFine
+      fine(CHF_IX[iff;jff;kff]) = fn
+
+      CHF_ENDDO
+
+      CHF_ENDDO
+
+      return
+      end
+
+ccccccccccccccccccccccccccccccc
+c  On interior of domain. away from corners/edges we can do a quadratic interp. We do:
+c    phi = a*x^2 + b*y^2 + c*x + d*y + e [+f*z^2+g*z] +
+c          + ... all of the terms
+c    We fit this polynomial by:
+c        a: matching slopes on all 4 [or 6 in 3d] faces and (using 4 (6 in 3d) neighbors)
+c        b: fit the polynomial to the diagonal 4 (12 in 3D) neighbors
+c        c: fit the integral over the coarse cell so it's equal to the coarse value
+c           NOTE: in 3D there is no dependence on the 8 corners, ie it's a 19-point stencil, in 2d it's 9-point stencil
+c    To set each fine value we:
+c      1. Set the fine value = the polynomial value from above
+c      2. Check the integral fit, and subsequently enforce this condition manually
+cccccccccccccccccccccccccccc
+      subroutine ebinterpquadratic(
+     &     CHF_FRA1[fine],
+     &     CHF_CONST_FRA1[coarse],
+     &     CHF_BOX[b],
+     &     CHF_CONST_INT[refratio],
+     &     CHF_BOX[bref]
+     &     )
+
+      real ave,fn,overEachFine
+      real CHF_DDECL[x,x2; y,y2; z,z2]
+      real a0,b0,c0,d0,e0,f,a1,b1,e1
+      real c111,c211,c011,c121,c101,c221,c001,c021,c201
+#if (CH_SPACEDIM == 3)
+      real a2,b2,c2,d2,e2,b3,c3,d3,b4,b5
+      real c122,c100,c102,c120,c212,c010,c012,c210,c112,c110
+#endif
+      integer CHF_DDECL[icc; jcc; kcc]
+      integer CHF_DDECL[iff; jff; kff]
+      integer CHF_DDECL[ii; jj; kk]
+
+c     compute on the refined box of each coarse point
+      CHF_MULTIDO[b; icc; jcc; kcc]
+c     get the coarse values
+
+c     this is the center cell
+      c111 = coarse(CHF_IX[icc  ;jcc  ;kcc  ])
+
+c     these are the face neighbors
+      c211 = coarse(CHF_IX[icc+1;jcc  ;kcc  ])
+      c011 = coarse(CHF_IX[icc-1;jcc  ;kcc  ])
+      c121 = coarse(CHF_IX[icc  ;jcc+1;kcc  ])
+      c101 = coarse(CHF_IX[icc  ;jcc-1;kcc  ])
+
+c     these are the diagonal neighbors
+      c221 = coarse(CHF_IX[icc+1;jcc+1;kcc  ])
+      c001 = coarse(CHF_IX[icc-1;jcc-1;kcc  ])
+      c021 = coarse(CHF_IX[icc-1;jcc+1;kcc  ])
+      c201 = coarse(CHF_IX[icc+1;jcc-1;kcc  ])
+#if (CH_SPACEDIM == 3)
+c     these are the remaining 3d face neighbors
+      c112 = coarse(CHF_IX[icc  ;jcc  ;kcc+1])
+      c110 = coarse(CHF_IX[icc  ;jcc  ;kcc-1])
+c     these are more diagonal neighbors used in the 3d 19-pt stencil
+      c122 = coarse(CHF_IX[icc  ;jcc+1;kcc+1])
+      c100 = coarse(CHF_IX[icc  ;jcc-1;kcc-1])
+      c102 = coarse(CHF_IX[icc  ;jcc-1;kcc+1])
+      c120 = coarse(CHF_IX[icc  ;jcc+1;kcc-1])
+      c212 = coarse(CHF_IX[icc+1;jcc  ;kcc+1])
+      c010 = coarse(CHF_IX[icc-1;jcc  ;kcc-1])
+      c012 = coarse(CHF_IX[icc-1;jcc  ;kcc+1])
+      c210 = coarse(CHF_IX[icc+1;jcc  ;kcc-1])
+#endif
+
+c     compute the polynomial coefficients
+
+#if 0
+c     These coeff's make a polynomial that goes through 8 (or 18) stencil points,
+c       and sets the integral over the coarse cell equal to the coarse value
+c     set the "a's" coeff's
+c      WRITE(*,*) "integral condition"
+#if (CH_SPACEDIM == 2)
+      a0 = (c001 +c021+c201+c221+
+     &    264.d0*(c011+c211)+22.d0*(c101+c121)-576.d0*c111)/484.d0;
+      a1 = (c001 +c021+c201+c221+
+     &    264.d0*(c101+c121)+22.d0*(c011+c211)-576.d0*c111)/484.d0;
+#elif (CH_SPACEDIM == 3)
+foo
+      a2 = (c110 -two*c111 + c112)/two]
+#endif
+
+c     set the "b's" coeff's
+      CHF_DTERM[
+      b0 = (-c001 + c021 + two*(c101-c121) - c201 + c221)/four;
+      b1 = (-c001 - c021 + two*(c011-c211) + c201 + c221)/four;
+      b2 = (-c010 - c012 + two*(c011-c211) + c210 + c212)/four
+      b3 = (-c100 - c102 + two*(c101-c121) + c120 + c122)/four
+      b4 = (-c010 + c012 + two*(c110-c112) - c210 + c212)/four
+      b5 = (-c100 + c102 + two*(c110-c112) - c120 + c122)/four]
+
+c     set the "c's" coeff's
+#if (CH_SPACEDIM == 2)
+      c0 = (-five*(c001 +c021+c201+c221)+
+     &    11.d0*(c011+c101+c121+c211)-24.d0*c111)*(-six/121.d0);
+#elif (CH_SPACEDIM == 3)
+foo
+
+#endif
+
+c     set the "d's" coeff's
+      CHF_DTERM[
+      d0 = (c001-c021-c201+c221)/four;;
+      d2 = (c010-c012-c210+c212)/four
+      d3 = (c100-c102-c120+c122)/four]
+
+c     set the "e's" coeff's
+      CHF_DTERM[
+      e0 = (c211         -c011)/two;
+      e1 = (c121         -c101)/two;
+      e2 = (c112         -c110)/two]
+
+c     set the "f" coeff's
+#if (CH_SPACEDIM == 2)
+      f = c111 - (a0+a1)/twelve - (c0)/144.d0
+#elif (CH_SPACEDIM == 3)
+      f = c111 - (a0+a1+a2)/twelve - (c0+c2+c3)/144.d0
+#endif
+#endif
+
+#if 1
+c     These coeff's make a polynomial that goes through all 9 (or 19) stencil points
+c      WRITE(*,*) "matching condition"
+c     set the "a's" coeff's
+      CHF_DTERM[
+      a0 = (c011 -two*c111 + c211)/two;
+      a1 = (c101 -two*c111 + c121)/two;
+      a2 = (c110 -two*c111 + c112)/two]
+
+
+c     set the "b's" coeff's
+      CHF_DTERM[
+      b0 = (-c001 + c021 + two*(c101-c121) - c201 + c221)/four;
+      b1 = (-c001 - c021 + two*(c011-c211) + c201 + c221)/four;
+      b2 = (-c010 - c012 + two*(c011-c211) + c210 + c212)/four
+      b3 = (-c100 - c102 + two*(c101-c121) + c120 + c122)/four
+      b4 = (-c010 + c012 + two*(c110-c112) - c210 + c212)/four
+      b5 = (-c100 + c102 + two*(c110-c112) - c120 + c122)/four]
+
+c     set the "c's" coeff's
+      CHF_DTERM[
+      c0=(c001+c021-two*(c011+c101+c121+c211)+c201+c221+four*c111)/four;;
+      c2=(c010+c012-two*(c011+c110+c112+c211)+c210+c212+four*c111)/four
+      c3=(c100+c102-two*(c101+c110+c112+c121)+c120+c122+four*c111)/four]
+
+
+c     set the "d's" coeff's
+      CHF_DTERM[
+      d0 = (c001-c021-c201+c221)/four;;
+      d2 = (c010-c012-c210+c212)/four
+      d3 = (c100-c102-c120+c122)/four]
+
+c     set the "e's" coeff's
+      CHF_DTERM[
+      e0 = (c211         -c011)/two;
+      e1 = (c121         -c101)/two;
+      e2 = (c112         -c110)/two]
+
+
+      f = c111
+#endif
+
+      ave = zero
+
+      CHF_MULTIDO[bref; ii; jj; kk]
+
+      CHF_DTERM[
+      iff = icc*refratio + ii;
+      jff = jcc*refratio + jj;
+      kff = kcc*refratio + kk]
+
+
+c     evaluate the polynomial at each fine cell
+      x = real(ii)/refratio + one/(refratio*two) - half
+      y = real(jj)/refratio + one/(refratio*two) - half
+      x2 = x**2
+      y2 = y**2
+
+      fn = a0*x2 + a1*y2 + b0*x2*y + b1*y2*x +
+     &    c0*x2*y2 + d0*x*y + e0*x + e1*y + f
+
+#if (CH_SPACEDIM == 3)
+      z = real(kk)/refratio + one/(refratio*two) - half
+      z2 = z**2
+      fn = fn + a2*z2 + b2*z2*x + b3*z2*y + b4*x2*z + b5*y2*z +
+     &    c2*x2*z2 + c3*y2*z2 + d2*x*z + d3*z*y +
+     &    e2*z
+#endif
+      fine(CHF_IX[iff;jff;kff]) = fn
+
+      ave = ave + fn
+
+      CHF_ENDDO
+
+      ave = ave/(refratio**CH_SPACEDIM)
+c     pass through the fine vofs and enforce that the fine average is equal to the coarse value
+      overEachFine = (ave - c111)/(refratio**CH_SPACEDIM)
+c      overEachFine = 0.0
+      CHF_MULTIDO[bref; ii; jj; kk]
+
+      CHF_DTERM[
+      iff = icc*refratio + ii;
+      jff = jcc*refratio + jj;
+      kff = kcc*refratio + kk]
+c     subtract off the difference so that our fine cells average to the coarse value
+      fn = fine(CHF_IX[iff;jff;kff]) - overEachFine
+      fine(CHF_IX[iff;jff;kff]) = fn
+
+      CHF_ENDDO
+
+      CHF_ENDDO
+      return
+      end
+
+      subroutine ebinterpquadshift(
+     &     CHF_FRA1[fine],
+     &     CHF_CONST_FRA1[coarse],
+     &     CHF_BOX[b],
+     &     CHF_CONST_INT[refratio],
+     &     CHF_CONST_INTVECT[ishift],
+     &     CHF_BOX[bref]
+     &     )
+
+      real ave,fn,overEachFine
+      real CHF_DDECL[x,x2; y,y2; z,z2]
+      real a0,b0,c0,d0,e0,f,a1,b1,e1
+      real coar
+      real c111,c211,c011,c121,c101,c221,c001,c021,c201
+#if (CH_SPACEDIM == 3)
+      real a2,b2,c2,d2,e2,b3,c3,d3,b4,b5
+      real c122,c100,c102,c120,c212,c010,c012,c210,c112,c110
+#endif
+      integer CHF_DDECL[icc; jcc; kcc]
+      integer CHF_DDECL[ics; jcs; kcs]
+      integer CHF_DDECL[iff; jff; kff]
+      integer CHF_DDECL[ii; jj; kk]
+
+c     compute on the refined box of each coarse point
+      CHF_MULTIDO[b; icc; jcc; kcc]
+
+c     shift the data accessors
+      CHF_DTERM[
+      ics = icc + ishift(0);
+      jcs = jcc + ishift(1);
+      kcs = kcc + ishift(2)]
+
+c     get the coarse values
+
+c     this is the coarse value for the cell we are refining (note icc and not ics...)
+c     NOTE: coar and c111 don't have to be the same cell
+      coar = coarse(CHF_IX[icc  ;jcc  ;kcc  ])
+
+c     this is the center cell
+      c111 = coarse(CHF_IX[ics  ;jcs  ;kcs  ])
+
+c     these are the face neighbors
+      c211 = coarse(CHF_IX[ics+1;jcs  ;kcs  ])
+      c011 = coarse(CHF_IX[ics-1;jcs  ;kcs  ])
+      c121 = coarse(CHF_IX[ics  ;jcs+1;kcs  ])
+      c101 = coarse(CHF_IX[ics  ;jcs-1;kcs  ])
+
+c     these are the diagonal neighbors
+      c221 = coarse(CHF_IX[ics+1;jcs+1;kcs  ])
+      c001 = coarse(CHF_IX[ics-1;jcs-1;kcs  ])
+      c021 = coarse(CHF_IX[ics-1;jcs+1;kcs  ])
+      c201 = coarse(CHF_IX[ics+1;jcs-1;kcs  ])
+#if (CH_SPACEDIM == 3)
+c     these are the remaining 3d face neighbors
+      c112 = coarse(CHF_IX[ics  ;jcs  ;kcs+1])
+      c110 = coarse(CHF_IX[ics  ;jcs  ;kcs-1])
+c     these are more diagonal neighbors used in the 3d 19-pt stencil
+      c122 = coarse(CHF_IX[ics  ;jcs+1;kcs+1])
+      c100 = coarse(CHF_IX[ics  ;jcs-1;kcs-1])
+      c102 = coarse(CHF_IX[ics  ;jcs-1;kcs+1])
+      c120 = coarse(CHF_IX[ics  ;jcs+1;kcs-1])
+      c212 = coarse(CHF_IX[ics+1;jcs  ;kcs+1])
+      c010 = coarse(CHF_IX[ics-1;jcs  ;kcs-1])
+      c012 = coarse(CHF_IX[ics-1;jcs  ;kcs+1])
+      c210 = coarse(CHF_IX[ics+1;jcs  ;kcs-1])
+#endif
+
+c     compute the polynomial coefficients
+
+c     These coeff's make a polynomial that goes through all 9 (or 19) stencil points
+c      WRITE(*,*) "matching condition"
+c     set the "a's" coeff's
+      CHF_DTERM[
+      a0 = (c011 -two*c111 + c211)/two;
+      a1 = (c101 -two*c111 + c121)/two;
+      a2 = (c110 -two*c111 + c112)/two]
+
+
+c     set the "b's" coeff's
+      CHF_DTERM[
+      b0 = (-c001 + c021 + two*(c101-c121) - c201 + c221)/four;
+      b1 = (-c001 - c021 + two*(c011-c211) + c201 + c221)/four;
+      b2 = (-c010 - c012 + two*(c011-c211) + c210 + c212)/four
+      b3 = (-c100 - c102 + two*(c101-c121) + c120 + c122)/four
+      b4 = (-c010 + c012 + two*(c110-c112) - c210 + c212)/four
+      b5 = (-c100 + c102 + two*(c110-c112) - c120 + c122)/four]
+
+c     set the "c's" coeff's
+      CHF_DTERM[
+      c0=(c001+c021-two*(c011+c101+c121+c211)+c201+c221+four*c111)/four;;
+      c2=(c010+c012-two*(c011+c110+c112+c211)+c210+c212+four*c111)/four
+      c3=(c100+c102-two*(c101+c110+c112+c121)+c120+c122+four*c111)/four]
+
+
+c     set the "d's" coeff's
+      CHF_DTERM[
+      d0 = (c001-c021-c201+c221)/four;;
+      d2 = (c010-c012-c210+c212)/four
+      d3 = (c100-c102-c120+c122)/four]
+
+c     set the "e's" coeff's
+      CHF_DTERM[
+      e0 = (c211         -c011)/two;
+      e1 = (c121         -c101)/two;
+      e2 = (c112         -c110)/two]
+
+
+      f = c111
+
+      ave = zero
+
+      CHF_MULTIDO[bref; ii; jj; kk]
+
+      CHF_DTERM[
+      iff = icc*refratio + ii;
+      jff = jcc*refratio + jj;
+      kff = kcc*refratio + kk]
+
+
+c     evaluate the polynomial at each fine cell
+      x = real(ii)/refratio + one/(refratio*two) - half - ishift(0)
+      y = real(jj)/refratio + one/(refratio*two) - half - ishift(1)
+      x2 = x**2
+      y2 = y**2
+
+      fn = a0*x2 + a1*y2 + b0*x2*y + b1*y2*x +
+     &    c0*x2*y2 + d0*x*y + e0*x + e1*y + f
+
+#if (CH_SPACEDIM == 3)
+      z = real(kk)/refratio + one/(refratio*two) - half - ishift(2)
+      z2 = z**2
+      fn = fn + a2*z2 + b2*z2*x + b3*z2*y + b4*x2*z + b5*y2*z +
+     &    c2*x2*z2 + c3*y2*z2 + d2*x*z + d3*z*y +
+     &    e2*z
+#endif
+      fine(CHF_IX[iff;jff;kff]) = fn
+
+      ave = ave + fn
+
+      CHF_ENDDO
+
+c
+c     enforce conservation
+c
+      ave = ave/(refratio**CH_SPACEDIM)
+c     pass through the fine vofs and enforce that the fine average is equal to the coarse value
+      overEachFine = (ave - coar)/(refratio**CH_SPACEDIM)
+c      overEachFine = 0.0
+      CHF_MULTIDO[bref; ii; jj; kk]
+
+      CHF_DTERM[
+      iff = icc*refratio + ii;
+      jff = jcc*refratio + jj;
+      kff = kcc*refratio + kk]
+c     subtract off the difference so that our fine cells average to the coarse value
+      fn = fine(CHF_IX[iff;jff;kff]) - overEachFine
+      fine(CHF_IX[iff;jff;kff]) = fn
+
+      CHF_ENDDO
+
+      CHF_ENDDO
+      return
+      end
+

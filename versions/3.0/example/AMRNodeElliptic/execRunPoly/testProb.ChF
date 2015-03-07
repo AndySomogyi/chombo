@@ -1,0 +1,232 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+C     --------------------------------------------------------------
+C     rno       =>   radius input to solution
+C     rhono     =>   coefficient of rhs
+C     iprob     =>   form of rhs to use
+C     --------------------------------------------------------------
+      subroutine INITPOLY(
+     $     CHF_CONST_REAL[rhnoin],
+     $     CHF_CONST_REAL[rnoin],
+     $     CHF_CONST_INT[iprbin],
+     $     CHF_REALVECT[cenin])
+      REAL_T rhono, rno, a0, a1, CHF_DDECL[xcen; ycen; zcen]
+      integer iprob
+      common / cbpoly / rhono, rno, CHF_DDECL[xcen; ycen; zcen],
+     &     a0, a1, iprob
+
+      rhono = rhnoin
+      rno = rnoin
+      iprob = iprbin
+      CHF_DTERM[
+      xcen = cenin(0) ;
+      ycen = cenin(1) ;
+      zcen = cenin(2) ]
+c     in 3 dimensions, for rad > rno, phi = a1/r + a0
+c     in 2 dimensions, for rad > rno, phi = a0 * log(r) + a1
+      a0 = three * rhono * rno**2 / twenty
+#if CH_SPACEDIM==3
+      a1 = - rhono * rno**3 / fifteen
+#else
+      a1 = rhono * rno**2 / twenty *
+     &     ((five*ten + seven)/twenty - three * log(rno))
+#endif
+
+      return
+      end
+
+
+C     --------------------------------------------------------------
+C     subroutine GETRHSNODEPOIS
+C     initialize rhs
+C
+C     INPUTS (=>),  OUTPUTS(<=):
+C     rhs      <=    right-hand side
+C     box       =>   this box
+C     dx        =>   mesh spacing
+C
+C     dtgraves nov 16, 1999
+C     petermc, 8 Feb 2001, modified for nodes.
+C     --------------------------------------------------------------
+      subroutine GETRHSNODEPOIS(
+     &     CHF_FRA[rhs],
+     $     CHF_BOX[box],
+     $     CHF_CONST_REAL[dx])
+      REAL_T rhono, rno, a0, a1, CHF_DDECL[xcen; ycen; zcen]
+      integer iprob
+      common / cbpoly / rhono, rno, CHF_DDECL[xcen; ycen; zcen],
+     &     a0, a1, iprob
+      integer CHF_DDECL[i;j;k]
+      REAL_T CHF_DDECL[xi;yi;zi]
+      REAL_T rad, radrat
+      integer nv
+      !!REAL_T rhsexact !!unused
+
+      if ((iprob .ne. 0) .and. (iprob .ne. 1)) then
+         call MAYDAY_ERROR()
+c         print*, 'GETRHSNODEPOIS: bogus iprob'
+c         stop
+      endif
+
+      do nv = 0, CHF_NCOMP[rhs] - 1
+
+          CHF_MULTIDO[box; i; j; k]
+
+              CHF_DTERM[
+              xi = dx*i - xcen ;
+              yi = dx*j - ycen ;
+              zi = dx*k - zcen ]
+
+              rad = sqrt(CHF_DTERM[xi*xi; + yi*yi; + zi*zi])
+
+              radrat = rad/rno
+c     iprob .eq. 0:  zero outside rno, constant rhono inside rno.
+c     iprob .eq. 1:  zero outside rno, smooth inside rno.
+              if (rad .lt. rno) then
+                 if (iprob .eq. 0) then
+                    rhs(CHF_IX[i; j; k], nv) = rhono
+                 else
+c     iprob .eq. 1
+c     rhs = rhono * (2*r**3 - 3*r**2 + 1)
+                    rhs(CHF_IX[i; j; k], nv) = rhono*
+     &                   ((two*radrat - three)*radrat**2 + one)
+                 endif
+              else
+                 rhs(CHF_IX[i; j; k], nv) = zero
+              endif
+
+          CHF_ENDDO
+      enddo
+
+      return
+      end
+
+
+c     =================================================-
+      subroutine GETPHINODE(
+     &     CHF_FRA[phi],
+     $     CHF_BOX[box],
+     $     CHF_CONST_REAL[dx])
+      REAL_T rhono, rno, a0, a1, CHF_DDECL[xcen; ycen; zcen]
+      integer iprob
+      common / cbpoly / rhono, rno, CHF_DDECL[xcen; ycen; zcen],
+     &     a0, a1, iprob
+      integer CHF_DDECL[i; j; k]
+      REAL_T CHF_DDECL[xi;yi;zi]
+      REAL_T rad, radrat
+      integer nv
+
+      if (iprob .ne. 1) then
+         call MAYDAY_ERROR()
+c         print*, 'GETRHSNODEPOIS: bogus iprob'
+c         stop
+      endif
+
+      do nv = 0, CHF_NCOMP[phi] - 1
+
+          CHF_MULTIDO[box; i; j; k]
+
+              CHF_DTERM[
+              xi = dx*i - xcen ;
+              yi = dx*j - ycen ;
+              zi = dx*k - zcen ]
+
+              rad = sqrt(CHF_DTERM[xi*xi; + yi*yi; + zi*zi])
+
+              if (rad .lt. rno) then
+                 radrat = rad/rno
+#if CH_SPACEDIM==3
+c     rhs = rhono *
+c     (1/6*rad**2- 3/(20*rno**2)*rad**4 + 1/(15*rad**3)*rad**5)
+c     = rhono * rad**2 * (1/6 + r**2 * (r/15 - 3/20))
+                 phi(CHF_IX[i; j; k], nv) = rhono * rad**2 *
+     &                (sixth + radrat**2 *
+     &                (radrat/fifteen - three/twenty))
+#else
+                 phi(CHF_IX[i; j; k], nv) = rhono * rad**2 *
+     &                (fourth + radrat**2 *
+     &                (two/(five*five) * radrat - three/sixteen))
+#endif
+              else
+c     outside the circle
+#if CH_SPACEDIM==3
+                 phi(CHF_IX[i; j; k], nv) = a1 / rad + a0
+#else
+                 phi(CHF_IX[i; j; k], nv) = a0 * log(rad) + a1
+#endif
+              endif
+          CHF_ENDDO
+      enddo
+
+      return
+      end
+
+
+c     =================================================-
+      subroutine GETGRADNODE(
+     &     CHF_FRA[grad],
+     $     CHF_BOX[box],
+     $     CHF_CONST_REAL[dx])
+      REAL_T rhono, rno, a0, a1, CHF_DDECL[xcen; ycen; zcen]
+      integer iprob
+      common / cbpoly / rhono, rno, CHF_DDECL[xcen; ycen; zcen],
+     &     a0, a1, iprob
+      integer CHF_DDECL[i; j; k]
+      REAL_T CHF_DDECL[xi;yi;zi]
+      REAL_T rad, radrat, dpdrr
+
+      if (iprob .ne. 1) then
+         call MAYDAY_ERROR()
+c         print*, 'GETRHSNODEPOIS: bogus iprob'
+c         stop
+      endif
+
+      CHF_MULTIDO[box; i; j; k]
+
+         CHF_DTERM[
+         xi = dx*i - xcen ;
+         yi = dx*j - ycen ;
+         zi = dx*k - zcen ]
+
+         rad = sqrt(CHF_DTERM[xi*xi; + yi*yi; + zi*zi])
+         radrat = rad/rno
+
+         if (rad .lt. rno) then
+c     1/r * dphi/dr
+#if CH_SPACEDIM==3
+c     rhs = rhono *
+c     (1/6*rad**2- 3/(20*rno**2)*rad**4 + 1/(15*rad**3)*rad**5)
+c     = rhono * rad**2 * (1/6 + r**2 * (r/15 - 3/20))
+            dpdrr = rhono *
+     &           (third - radrat**2 *
+     &           (three/five - (third * radrat)))
+#else
+            dpdrr = rhono *
+     &           (half - radrat**2 *
+     &           (three/four - (two/five * radrat)))
+#endif
+         else
+c     outside the circle
+c     1/r * dphi/dr
+#if CH_SPACEDIM==3
+            dpdrr = rhono / (fifteen * radrat**3)
+#else
+            dpdrr = rhono * three / (twenty * radrat**2)
+#endif
+         endif
+
+         CHF_DTERM[
+         grad(CHF_IX[i; j; k], 0) = dpdrr * xi ;
+         grad(CHF_IX[i; j; k], 1) = dpdrr * yi ;
+         grad(CHF_IX[i; j; k], 2) = dpdrr * zi ]
+
+      CHF_ENDDO
+
+      return
+      end

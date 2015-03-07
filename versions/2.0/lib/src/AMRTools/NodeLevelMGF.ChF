@@ -1,0 +1,259 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+c     petermc added 5 Apr 2002
+#include "CONSTANTS.H"
+
+C=======================================================
+C     subroutine NODEINTERPMG_GETWEIGHTS
+C     returns weights for interpolation operator in NODEINTERPMG.
+C 
+C     => inputs, <= outputs 
+C     nref       => refinement ratio
+C     bref       => the box [[0]^D : [nref-1]^D]
+C     wtcrnr     => work fab of 1 component on the box [[0]^D : [1]^D].
+C                   wtcrnr(coff, 0) is weight of a coarse node
+C                   c * nref + coff in interpolating to a fine node.
+C
+C     added by petermc, 14 Jun 2002
+C=======================================================
+      subroutine NODEINTERPMG_GETWEIGHTS(
+     $     CHF_CONST_INT[nref],
+     &     CHF_BOX[bref],
+     &     CHF_FRA[wtcrnr])
+
+      integer CHF_DDECL[iref; jref; kref]
+      integer CHF_DDECL[ib; jb; kb]
+      integer nvwt
+      integer CHF_DDECL[ibmax; jbmax; kbmax]
+      REAL_T refinv, wt
+      REAL_T CHF_DDECL[fraci; fracj; frack]
+      REAL_T CHF_DDECL[wti; wtj; wtk]
+      
+      refinv = one / nref
+
+      nvwt = 0
+c     bref's coordinates go from 0 to nref-1.
+c     loop order:  kref, jref, iref
+      CHF_MULTIDO[bref; iref; jref; kref]
+
+c        nvwt == iref + nref * (jref + nref * kref)
+
+c     If [i|j|k]ref == 0 then extend coarse region by 1 in [i|j|k] direction
+c     in order to get the nodes that lie on the boundary.
+
+c     subroutine MAXB sets ibmax = 0 if iref == 0, ibmax = 1 otherwise.
+         CHF_DTERM[
+         call maxb(iref, ibmax) ;
+         call maxb(jref, jbmax) ;
+         call maxb(kref, kbmax) ]
+
+c     Calculate weights of the 2^D coarse neighbors in the interpolation
+c     to the fine node  crse * nref + [iref; jref; kref]
+
+         CHF_DTERM[
+         fraci = iref * refinv ;
+         fracj = jref * refinv ;
+         frack = kref * refinv ]
+
+c     bcrnrs.max[dir] = (ref[dir] == 0) ? 0 : 1
+
+C        Calculate wtcrnr[bcrnrs]
+c         wttot = zero
+
+c        CHF_MULTIDO[bcrnrs; ib; jb; kb]
+         CHF_DTERM[
+         do ib = 0, ibmax ;
+         do jb = 0, jbmax ;
+         do kb = 0, kbmax ]
+
+            wt = one
+
+            CHF_DTERM[
+            call wtside(ib, fraci, wti)
+            wt = wt * wti ;
+            call wtside(jb, fracj, wtj)
+            wt = wt * wtj ;
+            call wtside(kb, frack, wtk)
+            wt = wt * wtk ]
+
+            wtcrnr( CHF_IX[ib; jb; kb], nvwt ) = wt
+c            wttot = wttot + wt
+
+         CHF_DTERM[
+         end do ;
+         end do ;
+         end do ]
+
+c        should have wttot == one here.
+
+         nvwt = nvwt + 1
+      CHF_ENDDO
+
+      return 
+      end
+
+
+
+C=======================================================
+C     subroutine NODEINTERPMG
+C     interpolation operator -- adds coarse correction to fine solution
+C     fine = fine + INTERP(crse)
+C 
+C     => inputs, <= outputs 
+C     fine      <=> fine solution
+C     crse       => coarse correction to fine solution
+C     region     => CELL-centered coarse-level box with interpolation region
+C     nref       => refinement ratio
+C     bref       => the box [[0]^D : [nref-1]^D]
+C     wtcrnr     => work fab of nref^D components on the box [[0]^D : [1]^D].
+C                   wtcrnr(coff, nvwt) is weight of a coarse node
+C                   c * nref + coff in interpolating to a fine node.
+C
+C     adapted from INTERPMG
+C     petermc, 30 Jan 2001
+C     modified 30 Mar 2001
+C     modified wtcrnr, 14 Jun 2002
+C=======================================================
+      subroutine NODEINTERPMG(
+     $     CHF_FRA[fine],
+     $     CHF_CONST_FRA[crse],
+     &     CHF_BOX[region],
+     $     CHF_CONST_INT[nref],
+     &     CHF_BOX[bref],
+     &     CHF_FRA[wtcrnr])
+
+      integer CHF_DDECL[iref, icrse, ifine, ib;
+     &     jref, jcrse, jfine, jb;
+     &     kref, kcrse, kfine, kb]
+      integer var, ncomp, nvwt
+      integer CHF_DDECL[ibmax, icmin, icmax;
+     &     jbmax, jcmin, jcmax;
+     &     kbmax, kcmin, kcmax]
+      REAL_T csum, refinv
+      
+      ncomp = CHF_NCOMP[fine]
+      if (ncomp .ne. CHF_NCOMP[crse]) then
+         print *, 'nodeinterpmg: fine and crse incompatible'
+         call MAYDAY_ERROR()
+      endif
+
+      refinv = one / nref
+
+      CHF_DTERM[
+      icmin = CHF_LBOUND[region; 0] ;
+      jcmin = CHF_LBOUND[region; 1] ;
+      kcmin = CHF_LBOUND[region; 2] ]
+
+      nvwt = 0
+c     bref's coordinates go from 0 to nref-1.
+c     loop order:  kref, jref, iref
+      CHF_MULTIDO[bref; iref; jref; kref]
+
+c        nvwt == iref + nref * (jref + nref * kref)
+
+c     If [i|j|k]ref == 0 then extend coarse region by 1 in [i|j|k] direction
+c     in order to get the nodes that lie on the boundary.
+
+c     subroutine MAXB sets ibmax = 0 if iref == 0, ibmax = 1 otherwise.
+         CHF_DTERM[
+         call maxb(iref, ibmax) ;
+         call maxb(jref, jbmax) ;
+         call maxb(kref, kbmax) ]
+
+         CHF_DTERM[
+         icmax = CHF_UBOUND[region; 0] + (1-ibmax) ;
+         jcmax = CHF_UBOUND[region; 1] + (1-jbmax) ;
+         kcmax = CHF_UBOUND[region; 2] + (1-kbmax) ]
+
+c     Interpolate to the fine node  crse * nref + [iref; jref; kref]
+c     for each coarse node  crse  in
+c     [[icmin; jcmin; kcmin] : [icmax; jcmax; kcmax]].
+
+c     bcrnrs.max[dir] = (ref[dir] == 0) ? 0 : 1
+
+c        CHF_MULTIDO[region; icrse; jcrse; kcrse]
+         CHF_DTERM[
+         do icrse = icmin, icmax ;
+         do jcrse = jcmin, jcmax ;
+         do kcrse = kcmin, kcmax ]
+         
+            CHF_DTERM[
+            ifine = nref*icrse + iref ;
+            jfine = nref*jcrse + jref ;
+            kfine = nref*kcrse + kref ]
+
+            do var = 0, ncomp-1
+
+C              Find sum of corrections.
+               csum = zero
+
+               CHF_DTERM[
+               do ib = 0, ibmax ;
+               do jb = 0, jbmax ;
+               do kb = 0, kbmax ]
+
+                  csum = csum + wtcrnr( CHF_IX[ib ; jb ; kb], nvwt ) *
+     &              crse( CHF_IX[icrse+ib; jcrse+jb ; kcrse+kb], var)
+
+               CHF_DTERM[
+               end do ;
+               end do ;
+               end do ]
+
+               fine ( CHF_IX[ifine ; jfine ; kfine], var ) = csum +
+     &              fine ( CHF_IX[ifine ; jfine ; kfine], var )
+
+            end do
+ 
+         CHF_DTERM[
+         end do ;
+         end do ;
+         end do ]
+
+         nvwt = nvwt + 1
+      CHF_ENDDO
+
+      return 
+      end
+
+
+
+C=======================================================
+C     subroutine WTSIDE
+C     sets wt = 1-frac if i == 0, wt = frac if i == 1.
+C=======================================================
+      subroutine WTSIDE(
+     &     CHF_CONST_INT[i],
+     &     CHF_CONST_REAL[frac],
+     &     CHF_REAL[wt])
+
+      if (i .eq. 0) then
+         wt = one - frac
+      else
+c        i .eq. 1
+         wt = frac
+      endif
+
+      return
+      end
+
+
+C=======================================================
+C     subroutine MAXB
+C     sets ibmax = 0 if iref == 0, ibmax = 1 otherwise.
+C=======================================================
+      subroutine MAXB(
+     &     CHF_CONST_INT[iref],
+     &     CHF_INT[ibmax])
+
+      if (iref .eq. 0) then
+         ibmax = 0
+      else
+         ibmax = 1
+      endif
+
+      return
+      end

@@ -1,0 +1,108 @@
+#problem independent stuff
+#restart_file = chk51.2d.hdf5
+artificial_viscosity = 0.3
+cfl = 0.5
+use_mass_redist = 1
+initial_cfl = 0.4
+verbosity = 1
+max_step = 2
+#max_step = 0
+max_time = 1000.0
+tag_buffer_size = 3
+refine_thresh = 0.5
+regrid_interval = 2 2 2 2 2 2
+#regrid_interval = 4 4 4 4 4 4
+max_dt_growth = 1.05
+dt_tolerance_factor = 1.05
+fixed_dt   = -1
+gamma = 1.4
+domain_length = 1.0 1.0 1.0
+##proper nesting radius
+grid_buffer_size = 1
+
+###explosion problem defns
+#shock_mach = 2.071
+shock_mach = 10
+shock_center = 0.05
+shock_normal = 0
+#=1 means shock goes right to left
+shock_backward = 0
+inside=0
+
+#ebis_file = multisphere128.3d.hdf5
+#ebis_file = multisphere128.2d.hdf5
+
+max_level = 3
+##grid parameters
+#coarsest grid size
+n_cell =  32 32 32
+#n_cell =  64 64 64
+#n_cell =  128 128 128
+#n_cell =  256 256 256
+#n_cell =  512 512 256
+#n_cell =  512 512 512
+#n_cell =  10 10 10
+#n_cell =   8 8 8
+#n_cell = 16 16 16 
+#ref_ratio = 2 2 2 2 2 2 2 2
+ref_ratio = 4 4 4 4 4 4 4 4 4 
+#ref_ratio = 2 4 4
+#ref_ratio = 8 8 8
+block_factor =  4
+max_grid_size = 64
+fill_ratio = 0.75
+
+###file output stuff
+checkpoint_interval = 50
+plot_interval = 2
+#plot_interval = 10
+#plot_interval = 40
+plot_prefix  = plt
+chk_prefix = chk
+
+###slope switches
+use_fourth_order_slopes = 1
+use_flattening = 1
+use_art_visc   = 1
+
+#########eb specific stuff#############
+
+##redistribution radius
+redist_radius = 1
+
+###geometry flag
+## 6 is  multiple spheres
+which_geom = 6
+
+##multisphere stuff
+num_spheres = 12
+
+sphere_radius_0 = 0.11
+sphere_radius_1 = 0.11
+sphere_radius_2 = 0.11
+sphere_radius_3 = 0.11
+sphere_radius_4 = 0.11
+sphere_radius_5 = 0.11
+sphere_radius_6 = 0.11
+sphere_radius_7 = 0.11
+sphere_radius_8 = 0.11
+sphere_radius_9 = 0.11
+sphere_radius_10= 0.11
+sphere_radius_11= 0.11
+
+sphere_center_0 = 0.20  0.25 0.5
+sphere_center_1 = 0.40  0.20 0.5
+sphere_center_9 = 0.60  0.25 0.5
+sphere_center_2 = 0.80  0.20 0.5
+
+sphere_center_3 = 0.25  0.5 0.5
+sphere_center_4 = 0.45  0.45 0.5
+sphere_center_5 = 0.65  0.5 0.5
+sphere_center_10= 0.85  0.45 0.5
+
+sphere_center_6 = 0.30   0.75 0.5
+sphere_center_7 = 0.50   0.70 0.5
+sphere_center_8 = 0.70   0.75 0.5
+sphere_center_11= 0.90   0.70 0.5
+
+

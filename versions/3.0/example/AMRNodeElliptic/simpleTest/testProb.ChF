@@ -1,0 +1,254 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+C     --------------------------------------------------------------
+C     subroutine GETRHSNODEPOIS
+C     initialize rhs
+C
+C     INPUTS (=>),  OUTPUTS(<=):
+C     rhs      <=    right-hand side
+C     domain    =>   geometric extent of initializtion
+C     box       =>   this box
+C     rno       =>   radius input to solution
+C     rhono     =>   coefficient of rhs
+C     iprob     =>   form of rhs to use
+C     dx        =>   mesh spacing
+C
+C     dtgraves nov 16, 1999
+C     petermc, 8 Feb 2001, modified for nodes.
+C     --------------------------------------------------------------
+      subroutine GETRHSNODEPOIS(
+     &     CHF_FRA[rhs],
+     $     CHF_BOX[box],
+     $     CHF_BOX[domain],
+     $     CHF_CONST_REAL[dx],
+     $     CHF_CONST_REAL[rhono],
+     $     CHF_CONST_REAL[rno],
+     $     CHF_CONST_INT[iprob])
+
+      integer CHF_DDECL[i;j;k]
+      REAL_T CHF_DDECL[xi;yi;zi]
+      REAL_T rad
+      REAL_T xloc, xlo, xhi
+      integer nv
+      REAL_T rhsexact
+
+      xlo = CHF_LBOUND[domain; 0]*dx
+      xhi = CHF_UBOUND[domain; 0]*dx
+      xloc = half*(xlo + xhi)
+
+      do nv = 0, CHF_NCOMP[rhs] - 1
+
+          CHF_MULTIDO[box; i; j; k]
+
+              CHF_DTERM[
+              xi = dx*i - xloc ;
+              yi = dx*j - xloc ;
+              zi = dx*k - xloc ]
+
+              rad = sqrt(CHF_DTERM[xi*xi; + yi*yi; + zi*zi])
+
+              call getrhsnodeexact(rhono, rno, rad, iprob, rhsexact)
+              rhs(CHF_IX[i; j; k], nv) =  rhsexact
+
+          CHF_ENDDO
+      enddo
+
+      return
+      end
+
+
+c     =================================================-
+      subroutine GETRHSNODEEXACT(CHF_REAL[rhono],
+     &     CHF_CONST_REAL[rno],
+     &     CHF_CONST_REAL[rad],
+     &     CHF_CONST_INT[iprob],
+     &     CHF_REAL[rhsexact])
+
+      REAL_T  rhs, radrat
+
+      radrat = rad/rno
+      if(iprob.eq.0) then
+         if(rad .lt. rno) then
+            rhs = rhono
+         else
+            rhs = zero
+         endif
+      elseif(iprob.eq.1) then
+         if(rad .lt. rno) then
+            rhs = rhono*(two*radrat**3 - three*radrat**2 + one)
+         else
+            rhs = zero
+         endif
+      else
+         call MAYDAY_ERROR()
+c         print*, 'GETRHSNODEEXACT: bogus iprob'
+c         stop
+      endif
+      rhsexact = rhs
+
+      return
+      end
+
+
+      subroutine SETTRIG(
+     $     CHF_CONST_REAL[coeff0],
+     $     CHF_CONST_REAL[coeff1],
+     $     CHF_CONST_REAL[coeff2],
+     $     CHF_CONST_REAL[coeff3],
+     $     CHF_CONST_REAL[coeff4],
+     $     CHF_CONST_REAL[coeff5])
+
+      REAL_T c0, c1, c2, c3, c4, c5
+      common / trig / c0, c1, c2, c3, c4, c5
+
+      c0 = coeff0
+      c1 = coeff1
+      c2 = coeff2
+      c3 = coeff3
+      c4 = coeff4
+      c5 = coeff5
+
+      return
+      end
+
+
+      subroutine SETPOLY(
+     $     CHF_CONST_REAL[coeff0],
+     $     CHF_CONST_REAL[coeff1],
+     $     CHF_CONST_REAL[coeff2],
+     $     CHF_CONST_REAL[coeff3],
+     $     CHF_CONST_REAL[coeff4],
+     $     CHF_CONST_REAL[coeff5])
+
+      REAL_T c0, c1, c2, c3, c4, c5
+      common / poly / c0, c1, c2, c3, c4, c5
+
+      c0 = coeff0
+      c1 = coeff1
+      c2 = coeff2
+      c3 = coeff3
+      c4 = coeff4
+      c5 = coeff5
+
+      return
+      end
+
+
+c     =================================================-
+      subroutine GETPHINODETRIG(
+     &     CHF_FRA[phi],
+     $     CHF_BOX[box],
+     $     CHF_CONST_REAL[dx])
+
+      REAL_T c0, c1, c2, c3, c4, c5
+      common / trig / c0, c1, c2, c3, c4, c5
+      integer CHF_DDECL[i; j; k]
+      REAL_T CHF_DDECL[x; y; z]
+      REAL_T cosx, siny
+      REAL_T phicor
+      integer nv
+
+      do nv = 0, CHF_NCOMP[phi] - 1
+
+          CHF_MULTIDO[box; i; j; k]
+
+              CHF_DTERM[
+              x = dx*i ;
+              y = dx*j ;
+              z = dx*k ]
+
+              CHF_DTERM[
+              cosx = cos(x) ;
+              siny = sin(y) ;
+              ]
+
+              phicor =
+     $             c0 * cosx * cosx +
+     $             c1 * cosx * siny +
+     $             c2 * siny * siny +
+     $             c3 * cosx +
+     $             c4 * siny +
+     $             c5
+
+              phi(CHF_IX[i; j; k], nv) = phicor
+
+          CHF_ENDDO
+      enddo
+
+      return
+      end
+
+
+c     =================================================-
+      subroutine GETPHINODEPOLY(
+     &     CHF_FRA[phi],
+     $     CHF_BOX[box],
+     $     CHF_CONST_REAL[dx])
+
+      REAL_T c0, c1, c2, c3, c4, c5
+      common / poly / c0, c1, c2, c3, c4, c5
+      integer CHF_DDECL[i; j; k]
+      REAL_T CHF_DDECL[x; y; z]
+      REAL_T phicor
+      integer nv
+
+      do nv = 0, CHF_NCOMP[phi] - 1
+
+          CHF_MULTIDO[box; i; j; k]
+
+              CHF_DTERM[
+              x = dx*i ;
+              y = dx*j ;
+              z = dx*k ]
+
+              phicor = c0*x*x + c1*x*y + c2*y*y + c3*x + c4*y + c5
+
+              phi(CHF_IX[i; j; k], nv) = phicor
+
+          CHF_ENDDO
+      enddo
+
+      return
+      end
+
+
+c     =================================================-
+      subroutine GETRHSNODEPOISTRIG(
+     &     CHF_FRA[rhs],
+     $     CHF_BOX[box],
+     $     CHF_CONST_REAL[dx])
+
+      REAL_T c0, c1, c2, c3, c4, c5
+      common / trig / c0, c1, c2, c3, c4, c5
+      integer CHF_DDECL[i; j; k]
+      REAL_T CHF_DDECL[x; y; z]
+      integer nv
+
+      do nv = 0, CHF_NCOMP[rhs] - 1
+
+          CHF_MULTIDO[box; i; j; k]
+
+              CHF_DTERM[
+              x = dx*i ;
+              y = dx*j ;
+              z = dx*k ]
+
+              rhs(CHF_IX[i; j; k], nv) =
+     $             - c0*2.0*cos(x+x)
+     $             - c1*2.0*cos(x)*sin(y)
+     $             + c2*2.0*cos(y+y)
+     $             - c3*cos(x)
+     $             - c4*sin(y)
+
+          CHF_ENDDO
+      enddo
+
+      return
+      end
+

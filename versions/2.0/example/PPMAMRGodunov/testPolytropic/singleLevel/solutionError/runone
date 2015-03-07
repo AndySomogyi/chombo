@@ -1,0 +1,102 @@
+#!/bin/csh -f
+#
+# runone {plm | ppm} {2d | 3d} testname wave res numsteps savedt
+#
+# Run the computation for one wave number, one resolution, and "numsteps"
+# steps.  If "savedt" exist, use a multiple of the timestep there for this
+# run.  If not, compute the timestep and store it in "savedt".
+#
+
+# Get the predictor step to use, plm or ppm, and the dimension, 2d or 3d
+set pred=${1}
+set dim=${2}
+set testname=${3}
+
+# Get the wave # of the plane wave
+set wave=(${4})
+
+# Get the larger resolution for the computation
+set res=${5}
+
+# Get the number of steps to run
+set numsteps=${6}
+
+# Get the name of the file containing "dt"
+set savedt=${7}
+
+# Make sure there is a "results" directory
+if (! -e results) then
+  mkdir results
+endif
+
+# This is the computation being run
+set progdir=../../../execPolytropic
+set progbase=amrGodunov
+
+# Get the executable name
+set ndim=`echo ${dim} | sed -e 's/[dD]//'`
+set config=`make -f GNUmakefile.config DIM=${ndim} DEBUG=FALSE config`
+set prog=${progdir}/${progbase}${config}.ex
+
+# Generate the basename for all the files
+set fbwave=`echo ${wave} | sed -e 's/ /./g'`
+set fbres=`echo ${res} | awk '{printf("%04d",$1);}'`
+set filebase=results/soln.${pred}.${testname}.${fbwave}.${fbres}
+
+# Generate the inputs and output filenames
+set filein=${filebase}.${dim}.inputs
+set fileout=${filebase}.${dim}.out
+
+# If there are less than 3 wave numbers, add wave numbers equal to zero until
+# there are 3 wave numbers
+set cwave=(${wave})
+set n=${#wave}
+while ("${n}" < 3)
+  set cwave=(${cwave} 0)
+  @ n++
+end
+
+# One quarter the resolution for y (and z) in some problems
+set res4=`expr ${res} / 4`
+
+# If no timestep exists run the computation for one step to determine it
+if (! -e "${savedt}") then
+  # Generate an "inputs" that will run the computation for one timestep which
+  # is computed during the run
+  sed -e "s@PREDICTOR@$pred@g"                      \
+      -e "s@NUMCELLS@$res@g"                        \
+      -e "s@CELLS4@$res4@g"                         \
+      -e "s@XWAVE@$cwave[1]@g"                      \
+      -e "s@YWAVE@$cwave[2]@g"                      \
+      -e "s@ZWAVE@$cwave[3]@g"                      \
+      -e "s@PLOTINTERVAL@-1@g"                      \
+      -e "s@FILEBASE@$filebase@g"                   \
+      -e "s@NUMSTEPS@1@g"                           \
+      -e "s@^godunov.fixed_dt@# godunov.fixed_dt@g" \
+    < template.${testname}.inputs                   \
+    > ${filein}
+
+  # Run the computation and save the timestep
+  ${prog} ${filein} | grep 'dt =' | awk '{printf("%22.15e",$NF);}' > ${savedt}
+endif
+
+# Get the current timestep
+set dt=`cat ${savedt}`
+
+# Generate the "inputs" file the computation will use
+sed -e "s@PREDICTOR@$pred@g"        \
+    -e "s@NUMCELLS@$res@g"          \
+    -e "s@CELLS4@$res4@g"           \
+    -e "s@XWAVE@$cwave[1]@g"        \
+    -e "s@YWAVE@$cwave[2]@g"        \
+    -e "s@ZWAVE@$cwave[3]@g"        \
+    -e "s@PLOTINTERVAL@$numsteps@g" \
+    -e "s@FILEBASE@$filebase@g"     \
+    -e "s@NUMSTEPS@$numsteps@g"     \
+    -e "s@FIXEDDT@$dt@g"            \
+  < template.${testname}.inputs     \
+  > ${filein}
+
+# Run the computation, save the output, and compress the resulting datafile
+${prog} ${filein} > ${fileout}
+gzip -f ${filebase}.*hdf5

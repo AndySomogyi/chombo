@@ -1,0 +1,39 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+c     =================================================-
+      subroutine GETPHINODEQUADRATIC(
+     &     CHF_FRA[phi],
+     $     CHF_BOX[box],
+     $     CHF_CONST_REAL[dx])
+
+      integer CHF_DDECL[i; j; k]
+      REAL_T CHF_DDECL[x; y; z]
+      REAL_T phicor
+      integer nv
+
+      do nv = 0, CHF_NCOMP[phi] - 1
+
+          CHF_MULTIDO[box; i; j; k]
+
+              CHF_DTERM[
+              x = dx*i ;
+              y = dx*j ;
+              z = dx*k ]
+
+              CHF_DTERM[ phicor = x * x ;
+     &             + y * y ;
+     &             + z * z ]
+
+              phi(CHF_IX[i; j; k], nv) = phicor
+
+          CHF_ENDDO
+      enddo
+
+      return
+      end

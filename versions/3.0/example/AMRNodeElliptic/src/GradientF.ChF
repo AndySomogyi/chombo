@@ -1,0 +1,138 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+c     petermc added 5 Apr 2002
+#include "CONSTANTS.H"
+
+C=======================================================
+C     subroutine GETGRAD
+C     compute CELL-centered gradients from NODE-centered data
+C     => inputs,  <= outputs
+C     cells    => CELLs on which to compute gradient
+C     q        => NODE-centered data
+C     dq      <=  CELL-centered gradient of q
+C
+C     Gradient at a cell is a D-dimensional vector.
+C     If q has n components, then dq has n*D components.
+C     Gradient of q[v] is stored in dq[v*D, ..., v*D+D-1].
+C
+C     petermc, 21 Nov 2001
+C=======================================================
+      subroutine GETGRAD(
+     &     CHF_BOX[cells],
+     &     CHF_CONST_FRA[q],
+     &     CHF_FRA[dq])
+
+      integer idim, count, nv, nvgrad
+      integer CHF_DDECL[i; j; k]
+      integer CHF_DDECL[ii; jj; kk]
+      integer CHF_DDECL[nexti; nextj; nextk]
+      REAL_T recct
+
+c     First get a count of how many node differences you can calculate:
+c     up to 2**(CH_SPACEDIM-1).
+      count = 2**(CH_SPACEDIM-1)
+      recct = one / count
+
+      do idim = 0, CH_SPACEDIM-1
+c     Find component of the gradient in dimension idim.
+c     Since q can have multiple components:
+c     The gradient of q[v] is put into dq[v*D, ..., v*D+D-1]
+c     where D == CH_SPACEDIM.
+         CHF_MULTIDO[cells; i; j; k]
+c     We find the average of the 2^(D-1) differences
+c     q[[i+ii; j+jj; k+kk] + e[idim]] - q[i+ii; j+jj; k+kk]
+c     where [ii; jj; kk] ranges from [0; 0; 0] to [1; 1; 1] - e[idim],
+c     and e[idim] is the unit vector in dimension idim.
+
+            CHF_DTERM[
+            nexti = CHF_ID(idim, 0) ;
+            nextj = CHF_ID(idim, 1) ;
+            nextk = CHF_ID(idim, 2) ]
+
+c     Initialize these components of the gradients to zero.
+            CHF_DTERM[
+            do ii = 0, 1-nexti ;
+               do jj = 0, 1-nextj ;
+                  do kk = 0, 1-nextk ]
+
+                     do nv = 0, CHF_NCOMP[q]-1
+                        nvgrad = nv*CH_SPACEDIM + idim
+                        dq(CHF_IX[i; j; k], nvgrad) = zero
+                     enddo
+
+                     CHF_DTERM[
+                  enddo ;
+               enddo ;
+            enddo ]
+
+c     Compute the gradients.
+            CHF_DTERM[
+            do ii = 0, 1-nexti ;
+               do jj = 0, 1-nextj ;
+                  do kk = 0, 1-nextk ]
+
+                     do nv = 0, CHF_NCOMP[q]-1
+                        nvgrad = nv*CH_SPACEDIM + idim
+                        dq(CHF_IX[i; j; k], nvgrad) =
+     &                       dq(CHF_IX[i; j; k], nvgrad) +
+     &                       recct *
+     &                       (q(CHF_IX[i+ii+nexti;
+     &                       j+jj+nextj;
+     &                       k+kk+nextk], nv) -
+     &                       q(CHF_IX[i+ii; j+jj; k+kk], nv))
+                     enddo
+
+                     CHF_DTERM[
+                  enddo ;
+               enddo ;
+            enddo ]
+
+         CHF_ENDDO
+      enddo
+
+      return
+      end
+
+
+C=======================================================
+C     subroutine MAGNITUDE
+C     compute magnitudes of D-dimensional vector data
+C     => inputs,  <= outputs
+C     region   => indices where magnitude is to be computed
+C     q        => data
+C     mag     <=  magnitudes of q
+C
+C     Magnitude is the square root of the sum of D components.
+C     If q has n*D components, then mag has n components.
+C     Magnitude of q[v*D, ..., v*D+D-1] is stored in mag[v].
+C
+C     petermc, 21 Nov 2001
+C=======================================================
+      subroutine MAGNITUDE(
+     &     CHF_BOX[region],
+     &     CHF_CONST_FRA[q],
+     &     CHF_FRA[mag])
+
+      integer CHF_DDECL[i; j; k]
+      integer nv, idim
+      REAL_T dat, sum2
+
+c     CHF_NCOMP[q] == 3 * CHF_NCOMP[mag]
+
+      CHF_MULTIDO[region; i; j; k]
+         do nv = 0, CHF_NCOMP[mag]-1
+            sum2 = zero
+            do idim = 0, CH_SPACEDIM-1
+               dat = q(CHF_IX[i; j; k], nv*CH_SPACEDIM + idim)
+               sum2 = sum2 + dat * dat
+            enddo
+            mag(CHF_IX[i; j; k], nv) = sqrt(sum2)
+         enddo
+      CHF_ENDDO
+
+      return
+      end

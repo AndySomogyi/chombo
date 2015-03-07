@@ -1,0 +1,67 @@
+#whicheta==0 constant coefs = 1
+#which_eta = 1 means that eta x = 1 + eta_eps*(sin x + siny + sinz).
+#which_mag should stay 1 or 2 unless debugging
+#1 means mag = (sinx, sin y, sinz)
+#2 means mag = (siny + sinz, sin x + sin z,  sinx + siny)
+which_eta = 1
+which_beta = 1
+#for lambda = -factor*eta
+which_lambda =2
+lambda_factor = 0.666666667
+which_vel = 1
+eta_eps = 0.1
+verbose = 1 
+# alpha*I + beta*laplacian
+use_eb_grids = false
+refine_threshold = 0.85
+alpha = 1.0
+beta  = 1.0
+#flag for convergence tests
+iprob = -1 
+do_error_output = 1
+num_smooth = 32
+num_mg     = 1
+max_iterations = 100
+tolerance  = 1.0e-9
+hang       = 1.0e-10
+# Sine frequency multipliers to use
+# for when bcs are trig
+trig = 2.0 2.0 2.0
+
+#bcs for faces 
+#4==periodic
+#5==reflective slip
+#6==no slip
+#7==trig diri for resisivity
+# Sine frequency multipliers to use
+# for when bcs are trig
+trig = 2.0  2.0  2.0  
+
+periodic           = 1 1 1 
+bc_lo              = 4 4 4
+bc_hi              = 4 4 4
+
+#periodic           = 0 0 0
+#bc_lo              = 6 6 6
+#bc_hi              = 6 6 6
+
+bc_value = 0.0  
+
+###GRID STUFF
+max_level    = 1
+ref_ratio    = 2 2 2 2 2 
+#n_cells      = 8 8 8
+n_cells      = 16 16 16
+#n_cells      = 32 32 32
+#n_cells      =  64 64 64
+#n_cells      =  128 128 128 
+#n_cells      =  256 256 256
+
+block_factor = 8
+fill_ratio   = 0.7
+buffer_size  = 2
+max_grid_size = 1024
+
+##GEOMETRY STUFF
+domain_length = 1.0 1.0 1.0
+

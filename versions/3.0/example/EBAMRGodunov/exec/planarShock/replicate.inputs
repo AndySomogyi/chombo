@@ -1,0 +1,78 @@
+#problem independent stuff
+artificial_viscosity = 0.3
+cfl = 0.5
+use_mass_redist = 1
+initial_cfl = 0.5
+verbosity = 1
+#max_step = 500
+max_step = 2
+max_time = 0.07
+tag_buffer_size = 1
+grid_buffer_size = 2
+refine_thresh = 0.1
+regrid_interval = 2 2 2 2 2 2
+max_dt_growth = 1.1
+dt_tolerance_factor = 1.1
+fixed_dt   = -1
+gamma = 1.4
+domain_length = 1.0 1.0 1.0
+
+
+###explosion problem defns
+#shock_mach = 2.071
+shock_mach = 10.0
+shock_center = 0.25
+shock_normal = 0
+#=1 means shock goes right to left
+shock_backward = 0
+
+#ebis_file = sphere128.3d.hdf5
+#ebis_file = sphere128.2d.hdf5
+
+max_level = 2
+##grid parameters
+#coarsest grid size
+n_cell =  32 32 32
+#n_cell =  64 64 64
+#n_cell = 100 100 100
+#n_cell =  128 128 128
+#n_cell =  256 256 256
+#n_cell =  512 512 512
+#n_cell =  10 10 10
+#n_cell =   8 8 8
+#n_cell = 16 16 16 
+ref_ratio = 2 2 2 2 2 2 2
+#ref_ratio = 4 4 4 4
+#ref_ratio = 2 4 4
+#ref_ratio = 8 8 8
+block_factor =  4
+#max_grid_size = 16
+max_grid_size = 16
+fill_ratio = 0.75
+
+###file output stuff
+checkpoint_interval = -1
+plot_interval = -1
+#plot_interval = 40
+plot_prefix  = plt
+chk_prefix = chk
+
+###slope switches
+use_fourth_order_slopes = 1
+use_flattening = 1
+use_art_visc   = 1
+
+#########eb specific stuff#############
+
+redist_radius = 1
+
+###geometry flag
+## 5 is a sphere
+which_geom = 5
+
+##sphere stuff
+sphere_radius = 0.1
+sphere_center = 0.36 0.5 0.5
+
+
+

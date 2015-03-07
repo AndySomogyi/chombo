@@ -1,0 +1,134 @@
+#!/bin/csh -f
+#
+# genall {plm | ppm} {2d | 3d} testname message program(s)
+#
+# This script runs "program" with a variety of plane waves and resolutions
+#
+
+# Get the predictor step to use, plm or ppm, and the dimension, 2d or 3d
+# and the test to use
+set pred=${1}
+set dim=${2}
+set testname=${3}
+
+# Get the message to print (see below) and the program to run
+set mess="${4}"
+set prog="${5}"
+
+# Choose the wave numbers of the plane waves and the range of resolutions
+# based on the dimension
+switch ("${testname}")
+  case "modiano":
+    switch ("${dim}")
+      case "2d":
+        # Resolution range
+        set minres=32
+        set maxres=1024
+        breaksw
+
+      case "3d":
+        # Resolution range
+        set minres=32
+        set maxres=512
+        breaksw
+
+      default:
+        echo "Unknown dimension: ${dim} (not '2d' or '3d')..."
+        exit 1
+        breaksw
+    endsw
+    breaksw
+
+  case "wave":
+  case "source":
+    switch ("${dim}")
+      case "2d":
+        # Wave numbers
+        set iwaves=(1 0 1 2 1)
+        set jwaves=(0 1 1 1 2)
+
+        # Resolution range
+        set minres=32
+        set maxres=1024
+        breaksw
+
+      case "3d":
+        # Wave numbers
+        set iwaves=(1 0 0 1 0 1 1 2 1 1)
+        set jwaves=(0 1 0 1 1 0 1 1 2 1)
+        set kwaves=(0 0 1 0 1 1 1 1 1 2)
+
+        # Resolution range
+        set minres=32
+        set maxres=256
+        breaksw
+
+      default:
+        echo "Unknown dimension: ${dim} (not '2d' or '3d')..."
+        exit 1
+        breaksw
+    endsw
+    breaksw
+
+  default:
+    echo "Unknown test: ${testname}..."
+    exit 1
+    breaksw
+endsw
+
+if ("${testname}" == "modiano") then
+  # Compute solutions for one case
+
+  # Output a message
+  echo ""
+  echo "  ${mess}..."
+  echo ""
+
+  # Dummy value
+  set wave=(0 0 0)
+
+  foreach p (${prog})
+    # Run the program, "prog"
+    ${p} ${pred} ${dim} ${testname} "${wave}" ${minres} ${maxres}
+
+    echo ""
+  end
+else
+  # Compute solutions for these wave numbers
+  set n=1
+  foreach i (${iwaves})
+    # Get the entire wave number in "wave"
+    set j=${jwaves[${n}]}
+
+    switch ("${dim}")
+      case "2d":
+        set wave=(${i} ${j})
+        breaksw
+
+      case "3d":
+        set k=${kwaves[${n}]}
+        set wave=(${i} ${j} ${k})
+        breaksw
+
+      default:
+        echo "Unknown dimension: ${dim} (not '2d' or '3d')..."
+        exit 1
+        breaksw
+    endsw
+
+    # Output a message for each plane wave
+    echo ""
+    echo "  ${mess} for (${wave})..."
+    echo ""
+
+    foreach p (${prog})
+      # Run the program, "prog", with the current plane wave
+      ${p} ${pred} ${dim} ${testname} "${wave}" ${minres} ${maxres}
+
+      echo ""
+    end
+
+    # Increment the index into the list of wave numbers
+    @ n++
+  end
+endif

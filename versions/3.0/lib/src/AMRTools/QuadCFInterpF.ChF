@@ -1,0 +1,108 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+
+      subroutine quadinterp(
+     &    CHF_FRA[phi],
+     &    CHF_CONST_FRA[phistar],
+     &    CHF_BOX[box],
+     &    CHF_CONST_INT[ihilo],
+     &    CHF_CONST_REAL[h],
+     &    CHF_CONST_INT[a_idir],
+     &    CHF_CONST_INT[scomp],
+     &    CHF_CONST_INT[ecomp],
+     &    CHF_CONST_INT[nref])
+
+      INTEGER CHF_DDECL[ii,i;jj,j;kk,k],n
+      REAL_T  x, pa, pb, ps, a, b, frac, denom, xsquared
+      REAL_T  mult, invh
+      frac=2.0/(h*h)
+      denom =  nref*nref + 4*nref + 3
+      mult = frac/denom
+      invh = 1.0/h
+      x = 2.0*h
+      xsquared = 4.0*h*h
+
+      CHF_DTERM[
+      ii = CHF_ID(a_idir, 0)*ihilo;
+      jj = CHF_ID(a_idir, 1)*ihilo;
+      kk = CHF_ID(a_idir, 2)*ihilo]
+
+      do n=scomp,ecomp
+           CHF_MULTIDO[box; i; j; k]
+           pa = phi(CHF_IX[i-2*ii;j-2*jj;k-2*kk],n)
+           pb = phi(CHF_IX[i-ii;j-jj;k-kk],n)
+           ps = phistar(CHF_IX[i+ii;j+jj;k+kk],n)
+           a  = mult*(2.0*ps + (nref+1)*pa - (nref+3)*pb)
+           b  = (pb-pa)*invh - a*h
+           phi(CHF_IX[i;j;k],n) = xsquared*a + b*x + pa
+           CHF_ENDDO
+      enddo
+
+      return
+
+      end
+
+
+      subroutine PHISTAR(CHF_FRA[fPhiStar],
+     &    CHF_BOX[region],
+     &    CHF_CONST_FRA[phic],
+     &    CHF_FRA[coarslope],
+     &    CHF_FRA[coarcurva],
+     &    CHF_FRA[coarmixed],
+     &    CHF_CONST_REAL[dxf],
+     &    CHF_CONST_INT[ivar],
+     &    CHF_CONST_INT[dir],
+     &    CHF_CONST_INT[sign],
+     &    CHF_CONST_INT[nRef])
+
+      REAL_T xf1, xc1, xf2, xc2, x1, x2, dxc
+      REAL_T aa, update1, update2, update3
+      integer CHF_DDECL[i,ir;j,jr;k,kr]
+      integer ivf(0:2), c(0:2)
+      integer YOU(1:2, 0:2), you1, you2
+      data YOU / 1, 2, 0, 2, 0, 1 /
+
+      dxc = dxf*nRef
+      you1=YOU(1,dir)
+      you2=YOU(2,dir)
+
+      CHF_MULTIDO[region; ir; jr; kr]
+          CHF_DTERM[
+          c(0)=ir/nRef;
+          c(1)=jr/nRef;
+          c(2)=kr/nRef]
+          CHF_DTERM[
+          ivf(0)=ir;
+          ivf(1)=jr;
+          ivf(2)=kr]
+          CHF_DTERM[
+          i=ir+sign*CHF_ID(0,dir);
+          j=jr+sign*CHF_ID(1,dir);
+          k=kr+sign*CHF_ID(2,dir)]
+
+          xf1 = (ivf(you1)+0.5)*dxf
+          xc1 = (  c(you1)+0.5)*dxc
+          xf2 = (ivf(you2)+0.5)*dxf
+          xc2 = (  c(you2)+0.5)*dxc
+          x1 = xf1-xc1
+          x2 = xf2-xc2
+          aa= phic(CHF_IX[c(0);c(1);c(2)],ivar)
+          update1=x1*coarslope(CHF_IX[c(0);c(1);c(2)],you1) +
+     &        0.5*x1*x1*coarcurva(CHF_IX[c(0);c(1);c(2)],you1)
+          update2=x2*coarslope(CHF_IX[c(0);c(1);c(2)],you2) +
+     &        0.5*x2*x2*coarcurva(CHF_IX[c(0);c(1);c(2)],you2)
+          update3=x1*x2*coarmixed(CHF_IX[c(0);c(1);c(2)],0)
+
+
+          fPhiStar(CHF_IX[i;j;k],ivar) = aa+update1+update2+update3
+      CHF_ENDDO
+
+      return
+
+      end

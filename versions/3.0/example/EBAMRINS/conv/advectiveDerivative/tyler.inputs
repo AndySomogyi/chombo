@@ -1,0 +1,57 @@
+#max step forced to be 1
+#max time set = 1000.
+
+domain_length         = 4.0
+max_level	      = 0
+
+#this is the coarsest box of the coarsest level
+n_cell                = 32 8 8 
+#n_cell                = 64 16 16
+#n_cell                = 128 32 32 
+ref_ratio	      = 2 2 2 2
+use_limiting          = 0
+
+checkpoint_interval   = -1
+plot_interval	      = -1
+max_grid_size	      = 1024
+fill_ratio	      = 0.7
+block_factor	      = 8
+regrid_interval	      = 2
+##this has to be bigger than one!
+max_dt_grow	      = 1.1  
+cfl		      = 0.5
+init_cfl	      = 0.5
+refine_threshold      = 0.1
+verbosity	      = 1
+nesting_radius	      = 2
+tag_buffer	      = 2
+flow_dir	      = 0
+spot_center	      = 0.15 0.5 0.25
+spot_radius	      = 0.1
+inflow_vel	      = 1.0
+
+do_error_output  = 1
+test_verbosity = 3
+###geometry flag
+## 0 is all regular
+#which_geom = 0
+
+### 5 is a sphere
+#which_geom = 5
+#
+###sphere stuff
+#sphere_radius = 0.2 128 32 32
+##sphere_center = 0.36 0.5 0.5
+#sphere_center = 0.5 0.5 0.5
+
+##GEOMETRY STUFF
+domain_length = 4.0 1.0 1.0
+
+#all regular
+#which_geom=0 
+
+which_geom = 13
+tyler_x1   = 1.0
+tyler_x2   = 3.0
+tyler_y2   = 0.3
+tyler_y1   = 0.4999

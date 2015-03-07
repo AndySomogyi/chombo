@@ -1,0 +1,63 @@
+#problem independent stuff
+artificial_viscosity = 0.1
+do_fileoutput = 1
+do_erroroutput = 1
+do_scatterplots = 1
+cfl = 0.5 
+use_mass_redist = 1
+use_limiting = 0
+initial_cfl = 0.5
+verbosity = 1
+testverbosity = 3
+max_time = 0.6
+gamma = 1.4
+domain_length = 1.0
+fixed_dt   = -1.0
+dt_tolerance_factor = 1.1
+max_dt_growth = 1.1
+#for coarse calc this is 
+#divided by 2
+max_step = 4
+
+ #the IC the Modiano problem
+#modiano and problem defns
+#uses ramp slope for direction
+wave_amplitude = 1.0e-4
+wave_width     = 0.2
+wave_center = 0.5 0.5 0.5
+use_negative_wave = 0
+free_stream_prob = 0
+#ebis_file = cyl128.3d.hdf5
+#ebis_file = cyl128.2d.hdf5
+
+##grid parameters 
+#remember this is single level
+##this is for finer grid
+#n_cell = 512 512 512
+#n_cell = 256 256 256
+#n_cell = 128 128 128
+#n_cell = 64 64 64
+#n_cell = 32 32 32
+n_cell = 16 16 16
+max_grid_size = 32
+
+###no checkpoints 
+plot_interval = -1
+
+###slope switches
+use_fourth_order_slopes = 1
+use_flattening = 0
+use_art_visc   = 1
+
+#########eb specific stuff#############
+
+##redistribution radius
+redist_radius = 1
+
+# 0 for all reg, 1 for ramp, 2 for channel, 3 for cylinder
+#uses channel_radius for radius
+which_geom = 3
+cylinder_axis =  1 1 1
+channel_radius = 0.125
+
+

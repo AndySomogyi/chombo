@@ -1,0 +1,80 @@
+#problem independent stuff
+cfl = 0.9
+initial_cfl = 0.9
+
+use_mass_redist = 0
+verbosity = 1
+#max_step = 700
+max_step = 40
+max_time = 0.2
+tag_buffer_size = 3
+refine_thresh = 0.3
+regrid_interval = 2 2 2 2 2 2
+max_dt_growth = 1.1
+dt_tolerance_factor = 1.1
+fixed_dt   = -1
+gamma = 1.4
+domain_length = 1.0 1.0 1.0
+
+###modiano prob defns
+#the IC the Modiano problem
+#modiano and problem defns
+#uses ramp slope for direction
+wave_amplitude = 1.0e-1
+wave_width     = 0.2
+wave_center = 0.5 0.5 0.5
+use_negative_wave = 0
+free_stream_prob = 1
+
+##grid parameters
+max_level = 1
+#this is the coarse cell refinement
+#n_cell =   8 8 8
+#fixed_hierarchy = grids.dat.8
+n_cell = 16 16 16 
+fixed_hierarchy = grids.dat.16
+#n_cell =  32 32 32
+#fixed_hierarchy = grids.dat.32
+#n_cell =  64 64 64
+#fixed_hierarchy = grids.dat.64
+#n_cell =  128 128 128
+#fixed_hierarchy = grids.dat.128
+#n_cell =  256 256 256
+#fixed_hierarchy = grids.dat.256
+#n_cell =  512 512 512
+#fixed_hierarchy = grids.dat.512
+ref_ratio = 2 2 2 2 
+#ref_ratio = 4 4 4
+#ref_ratio = 8 8 8
+
+block_factor =  4
+max_grid_size = 64
+fill_ratio = 0.75
+
+###file output stuff
+checkpoint_interval = -1
+plot_interval = -1
+#plot_interval = 40
+plot_prefix  = plt
+chk_prefix = chk
+
+###slope switches
+use_fourth_order_slopes = 1
+use_flattening = 1
+use_art_visc   = 1
+artificial_viscosity = 0.1
+
+#########eb specific stuff#############
+
+##redistribution radius
+redist_radius = 1
+
+###tilted cylinder stuff
+cylinder_axis = 2.0 1.0 1.0
+#cylinder_axis = 1.0 1.0 1.0
+#cylinder_radius = 0.3
+cylinder_radius = 0.1767767
+#cylinder_radius = 0.2236067
+#cylinder_radius = 0.25
+
+

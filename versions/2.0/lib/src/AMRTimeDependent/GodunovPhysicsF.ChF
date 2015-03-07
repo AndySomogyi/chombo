@@ -1,0 +1,32 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+        subroutine FLUXDIFFF(
+     &    CHF_FRA[diff],
+     &    CHF_CONST_FRA[F],
+     &    CHF_CONST_INT[idir],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+        integer CHF_DDECL[ioff;joff;koff]
+        integer iv
+
+        CHF_DTERM[
+        ioff = CHF_ID(0,idir);
+        joff = CHF_ID(1,idir);
+        koff = CHF_ID(2,idir)]
+
+        do iv = 0,CHF_NCOMP[diff] - 1
+          CHF_MULTIDO[box;i;j;k]
+            diff(CHF_IX[i;j;k],iv) = F(CHF_IX[i+ioff;j+joff;k+koff],iv)
+     &                             - F(CHF_IX[i     ;j     ;k     ],iv)
+          CHF_ENDDO
+        enddo
+
+        return
+        end

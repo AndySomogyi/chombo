@@ -1,0 +1,25 @@
+#problem independent stuff
+domain_length = 4.0
+
+##grid parameters 
+#remember this is single level
+##this is for finer grid
+#n_cell =  16 16 16
+#n_cell =  8 8 8
+#n_cell = 64 16 16
+#n_cell = 128 32 32
+n_cell = 256 64 64
+max_grid_size = 16
+
+#########eb specific stuff#############
+
+# 2 for channel, 3 for cylinder
+which_geom = 3
+#cylinder stuff
+#uses channel_radius for radius
+#cylinder_axis = 0.8660254 0.5 0.0
+cylinder_axis = 4 1 1
+channel_radius = 0.25
+channel_normal = -1.0 4.0 0.0
+
+

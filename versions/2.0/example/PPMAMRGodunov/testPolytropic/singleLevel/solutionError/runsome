@@ -1,0 +1,53 @@
+#!/bin/csh -f
+#
+# runsome {plm | ppm} {2d | 3d} testname wave minres maxres
+#
+# Compute results for one wave number and a variety of resolutions
+#
+
+# Get the predictor step to use, plm or ppm, and the dimension, 2d or 3d
+# and the test to run
+set pred=${1}
+set dim=${2}
+set testname=${3}
+
+# Get the wave # of the plane wave
+set wave=(${4})
+
+# Get the minimum and maximum resolutions for the computation
+set minres=${5}
+set maxres=${6}
+
+# Start at the maximum resolution
+set res=${maxres}
+
+# Where to save the time step
+set savedt=/tmp/savedt$$
+
+# Make sure it doesn't exist initially
+/bin/rm -f ${savedt}
+
+# Loop through all resolutions
+while (${res} >= ${minres})
+  # Output the current resolution
+  echo ${res} | awk '{printf("    %4d...",$1);}'
+
+  # Compute the number of steps needed
+  set numsteps=`expr ${res} / 4`
+
+  # Run the computation for this resolution
+  runone ${pred} ${dim} ${testname} "${wave}" ${res} ${numsteps} ${savedt}
+
+  # Done with the computation
+  echo ""
+
+  # Move onto the next (lower) resolution
+  set res=`expr ${res} / 2`
+
+  # Increase the timestep
+  set dt=`awk '{printf("%22.15e",$1*2);}' ${savedt}`
+  echo ${dt} >! ${savedt}
+end
+
+# Clean up temporary storage
+/bin/rm -f ${savedt}

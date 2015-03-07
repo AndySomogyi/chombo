@@ -1,0 +1,36 @@
+#!/bin/csh -f
+#
+# errsome {plm | ppm} {2d | 3d} testname wave minres maxres
+#
+# Compute the error in the computation for one wave number and a variety of
+# pairs of resolutions
+#
+
+# Get the predictor step to use, plm or ppm, and the dimension, 2d or 3d
+# and the test to use
+set pred=${1}
+set dim=${2}
+set testname=${3}
+
+# Get the wave # of the plane wave
+set wave=(${4})
+
+# Get the minimum and maximum resolutions for the computation
+set minres=${5}
+set maxres=${6}
+
+# Set the initial previous (lower) and current (higher) resolutions to compare
+set prevres=${minres}
+set curres=`expr ${prevres} \* 2`
+
+# Loop through all adjacent pairs of resoluitons
+while (${curres} <= ${maxres})
+  # Output the resolutions being compared and compare them
+  echo ${prevres} ${curres} | awk '{printf("    %4d vs. %4d - ",$1,$2);}'
+  errone ${pred} ${dim} ${testname} "${wave}" ${prevres} ${curres} ${minres}
+  echo ""
+
+  # Move onto the next pair of resolutions
+  set prevres=${curres}
+  set curres=`expr ${prevres} \* 2`
+end

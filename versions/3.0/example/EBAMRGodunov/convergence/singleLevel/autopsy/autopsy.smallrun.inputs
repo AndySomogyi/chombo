@@ -1,0 +1,78 @@
+#problem independent stuff
+cfl = 0.5 
+verbosity = 1
+gamma = 1.4
+domain_length = 1.0
+
+use_negative_wave = 0
+free_stream_prob  = 0
+
+#works for 64x64
+#fixed_dt   = 0.006
+#works for 128x128
+fixed_dt   = 0.003
+#works for 256x256
+#fixed_dt   = 0.0015
+#fixed_dt   = -1
+
+#only running one time step!!!
+###if > 0 used fixed dt = value shown
+####for coarse calc, use twice the value shown
+#fixed_dt   = 0.006
+fixed_dt   = -1
+### for truncation error,
+#each calc only run one time step	
+
+#the IC the Modiano problem
+#modiano and problem defns
+#uses ramp slope for direction
+wave_amplitude = 1.0e-1
+wave_width     = 0.2
+wave_center = 0.5 0.5 0.5
+
+##grid parameters 
+#remember this is single level
+##this is for finer grid
+#n_cell =  8 8 8
+n_cell = 16 16 16
+#n_cell = 32 32 32
+#n_cell = 64 64 64
+#n_cell = 128 128 128
+#n_cell = 256 256 256
+max_grid_size = 16
+
+
+###file output stuff is fixed.
+###no checkpoints and plot interval = max_step	
+
+###slope switches
+use_fourth_order_slopes = 0
+use_flattening = 0
+use_art_visc   = 0	
+
+#########eb specific stuff#############
+
+##redistribution radius
+redist_radius = 1
+
+# 0 for all reg, 1 for ramp, 2 for channel, 3 for cylinder
+which_geom = 3
+#cylinder stuff
+#uses channel_radius for radius
+cylinder_axis = 1 1 1
+### ramp stuff
+alpha = -0.25
+#channel stuff
+#channel_normal = 1.0 0.0 0.0
+#channel_normal = -0.5 0.8660254 0.0
+channel_normal = -1.0 1.0 -0.0
+#channel_normal = -1.0 1.0 0.0
+#only used with ramp
+#channel_radius = 0.111803399
+#channel_radius = 0.088388348
+channel_radius = 0.25
+# 0 = circular cylinder
+# 1 = square cylinder
+cylinder_type = 0
+
+

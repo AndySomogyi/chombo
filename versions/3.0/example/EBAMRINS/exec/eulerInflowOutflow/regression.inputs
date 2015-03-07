@@ -1,0 +1,55 @@
+max_step  	      = 1
+max_time              = 1.0
+num_filter_iterations  = 0
+num_gphi_iterations  = 1
+tag_on_scalar         = 0
+viscosity             = 0.000
+do_slip_walls         = 1
+use_limiting          = 1
+domain_length         = 1.0
+max_level	      = 0
+n_cell                = 8 8 8
+#n_cell                = 16 16 16
+#n_cell                =  32 32 32
+#n_cell                = 64 64 64 
+ref_ratio	      = 2 2 2 2
+
+checkpoint_interval   = -1
+plot_interval	      = 10
+max_grid_size	      = 64
+fill_ratio	      = 0.7
+block_factor	      = 8
+regrid_interval	      = 2
+##this has to be bigger than one!
+max_dt_grow	      = 1.1  
+cfl		      = 0.5
+init_cfl	      = 0.5
+refine_threshold      = 0.1
+verbosity	      = 1
+nesting_radius	      = 2
+tag_buffer	      = 2
+flow_dir	      = 0
+spot_center	      = 0.15 0.5 0.25
+spot_radius	      = 0.2
+inflow_vel	      = 1.0
+
+perturbation_eps      = 0.01
+perturbation_freq     = 1.0
+
+###geometry flag
+## 0 is all regular
+#which_geom = 0
+
+## 5 is a sphere
+which_geom = 5
+
+##sphere stuff
+sphere_radius = 0.2
+#sphere_center = 0.36 0.5 0.5
+sphere_center = 0.5 0.5 0.5
+
+poisselle_inflow = false
+streak_radius = 0.02
+num_streaks   = 5
+
+

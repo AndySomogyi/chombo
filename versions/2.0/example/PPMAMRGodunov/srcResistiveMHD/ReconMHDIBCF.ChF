@@ -1,0 +1,774 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+#include "LGintegrator.H"
+
+        subroutine SETMHDRECON(
+     &    CHF_CONST_REAL[a_gamma],
+     &    CHF_CONST_REAL[a_mu],
+     &    CHF_CONST_REAL[a_eta],
+     &    CHF_CONST_REAL[a_kappa])
+
+        real_t pi
+
+#include "EosCommon.fh"
+
+c        gamma = a_gamma
+        call SetMHDproperties(a_gamma,a_mu,a_eta,a_kappa)
+        write(6,*) 'FORTRAN COMMON SET', gamma,rgas,wmol
+        write(6,*) 'FORTRAN COMMON SET', eta, mu, kappa
+        return
+        end
+
+c-----------------------------------------------------------------------
+        subroutine MHDRECONINIT(
+     &    CHF_FRA[U],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_BOX[box])
+
+        real_t xofy
+        integer klo,khi
+        integer kulo,kuhi
+
+#include "EosCommon.fh"
+
+      write(6,*) 'MHDINIT dx ', dx
+      write(6,*) 'MHDINIT Box ', iboxlo0,iboxhi0, iboxlo1,iboxhi1
+#if CH_SPACEDIM==2
+      klo=1
+      khi=1
+      kulo=1
+      kuhi=1
+      write(6,*) 'MHDINIT U ', iulo0,iuhi0, iulo1,iuhi1
+#elif CH_SPACEDIM==3
+      klo=iboxlo2+1
+      khi=iboxhi2+1
+      kulo=iulo2+1
+      kuhi=iuhi2+1
+      write(6,*) 'MHDINIT U ', iulo0,iuhi0, iulo1,iuhi1, kulo,kuhi
+#endif
+c
+c      call MHDSolveInit(U,
+c     &     iulo0+1,iuhi0+1,iulo1+1,iuhi1+1,
+c     &     iboxlo0+1,iboxhi0+1,
+c     &     iboxlo1+1,iboxhi1+1,klo,khi,dx,dx,dx)
+c      call OrszagTangInitialConditions(U,
+c     &     iulo0+1,iuhi0+1,iulo1+1,iuhi1+1,
+c     &     iboxlo0+1,iboxhi0+1,
+c     &     iboxlo1+1,iboxhi1+1,klo,khi,dx,dx,dx)
+      call ReconInitialConditions(U,
+     &     iulo0+1,iuhi0+1,iulo1+1,iuhi1+1,kulo,kuhi,
+     &     iboxlo0+1,iboxhi0+1,
+     &     iboxlo1+1,iboxhi1+1,klo,khi,dx,dx,dx)
+c      call FluxTubeInitialConditions(U,
+c     &     iulo0+1,iuhi0+1,iulo1+1,iuhi1+1,
+c     &     iboxlo0+1,iboxhi0+1,
+c     &     iboxlo1+1,iboxhi1+1,klo,khi,dx,dx,dx)
+c      call RingInitialConditions(U,
+c     &     iulo0+1,iuhi0+1,iulo1+1,iuhi1+1,
+c     &     iboxlo0+1,iboxhi0+1,
+c     &     iboxlo1+1,iboxhi1+1,klo,khi,dx,dx,dx)
+c      call WaveInitialConditions(U,
+c     &     iulo0+1,iuhi0+1,iulo1+1,iuhi1+1,
+c     &     iboxlo0+1,iboxhi0+1,
+c     &     iboxlo1+1,iboxhi1+1,klo,khi,dx,dx,dx)
+c      call ReconInitialConditions(state,
+c     &     iboxlo0+1,iboxhi0+1,
+c     &     iboxlo1+1,iboxhi1+1,klo,khi,dx,dx,dx)
+c      call RMInitialConditions(U,
+c     &     iulo0+1,iuhi0+1,iulo1+1,iuhi1+1,
+c     &     iboxlo0+1,iboxhi0+1,
+c     &     iboxlo1+1,iboxhi1+1,klo,khi,dx,dx,dx)
+c
+        return
+        end
+
+c-----------------------------------------------------------------------
+        subroutine MHDRECONPARABOLICFLUXBC(
+     &    CHF_FRA[F],
+     &    CHF_FRA[W],
+     &    CHF_CONST_REAL[time],
+     &    CHF_CONST_INT[lohisign],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[dir],
+     &    CHF_BOX[box])
+
+        real_t ke,r0,p0,umag,p,r
+        real_t CHF_DDECL[x;y;z]
+        real_t xofy,rg,pg,ws
+        real_t  uu,vv,ww
+        integer CHF_DDECL[i;j;k]
+        real_t bi,bj,bk
+        integer iv
+
+#include "EosCommon.fh"
+
+      write(6,*) 'PMHDBC dx ', dx,dir,lohisign
+c$$$      write(6,*) 'PMHDBC Box ', iboxlo0,iboxhi0, iboxlo1,iboxhi1
+c$$$      write(6,*) 'PMHDBC W ', iwlo0,iwhi0, iwlo1,iwhi1
+c$$$      write(6,*) 'PMHDBC F', iflo0,ifhi0, iflo1,ifhi1
+        if (dir .eq. 0) then
+          CHF_MULTIDO[box;i;j;k]
+          if(lohisign.eq.-1) then
+c             write(6,*) 'LO BDRY X ', i
+              W(CHF_IX[i-1;j;k],URHO) = W(CHF_IX[i;j;k],URHO)
+              W(CHF_IX[i-1;j;k],UMOMX) = -W(CHF_IX[i;j;k],UMOMX)
+              W(CHF_IX[i-1;j;k],UMOMY) = W(CHF_IX[i;j;k],UMOMY)
+              W(CHF_IX[i-1;j;k],UMOMZ) = W(CHF_IX[i;j;k],UMOMZ)
+              W(CHF_IX[i-1;j;k],UBX) = -W(CHF_IX[i;j;k],UBX)
+              W(CHF_IX[i-1;j;k],UBY) = W(CHF_IX[i;j;k],UBY)
+              W(CHF_IX[i-1;j;k],UBZ) = W(CHF_IX[i;j;k],UBZ)
+              W(CHF_IX[i-1;j;k],UENG) = W(CHF_IX[i;j;k],UENG)
+           else
+c             write(6,*) 'HI BDRY X ', i
+              W(CHF_IX[i+1;j;k],URHO) = W(CHF_IX[i;j;k],URHO)
+              W(CHF_IX[i+1;j;k],UMOMX) = -W(CHF_IX[i;j;k],UMOMX)
+              W(CHF_IX[i+1;j;k],UMOMY) = W(CHF_IX[i;j;k],UMOMY)
+              W(CHF_IX[i+1;j;k],UMOMZ) = W(CHF_IX[i;j;k],UMOMZ)
+              W(CHF_IX[i+1;j;k],UBX) = -W(CHF_IX[i;j;k],UBX)
+              W(CHF_IX[i+1;j;k],UBY) = W(CHF_IX[i;j;k],UBY)
+              W(CHF_IX[i+1;j;k],UBZ) = W(CHF_IX[i;j;k],UBZ)
+              W(CHF_IX[i+1;j;k],UENG) = W(CHF_IX[i;j;k],UENG)
+           endif
+              F(CHF_IX[i;j;k],URHO) = zero
+              F(CHF_IX[i;j;k],UMOMX) = zero
+              F(CHF_IX[i;j;k],UMOMY) = zero
+              F(CHF_IX[i;j;k],UMOMZ) = zero
+              F(CHF_IX[i;j;k],UBX) = zero
+              F(CHF_IX[i;j;k],UBY) = zero
+              F(CHF_IX[i;j;k],UBZ) = zero
+              F(CHF_IX[i;j;k],UENG) = zero
+           CHF_ENDDO
+        else
+          CHF_MULTIDO[box;i;j;k]
+          if(lohisign.eq.-1) then
+c             write(6,*) 'LO BDRY Y ', j
+              W(CHF_IX[i;j-1;k],URHO) = W(CHF_IX[i;j;k],URHO)
+              W(CHF_IX[i;j-1;k],UMOMX) = W(CHF_IX[i;j;k],UMOMX)
+              W(CHF_IX[i;j-1;k],UMOMY) = -W(CHF_IX[i;j;k],UMOMY)
+              W(CHF_IX[i;j-1;k],UMOMZ) = W(CHF_IX[i;j;k],UMOMZ)
+              W(CHF_IX[i;j-1;k],UBX) = W(CHF_IX[i;j;k],UBX)
+              W(CHF_IX[i;j-1;k],UBY) = -W(CHF_IX[i;j;k],UBY)
+              W(CHF_IX[i;j-1;k],UBZ) = W(CHF_IX[i;j;k],UBZ)
+              W(CHF_IX[i;j-1;k],UENG) = W(CHF_IX[i;j;k],UENG)
+           else
+c             write(6,*) 'HI BDRY Y ', j
+              W(CHF_IX[i;j+1;k],URHO) = W(CHF_IX[i;j;k],URHO)
+              W(CHF_IX[i;j+1;k],UMOMX) = W(CHF_IX[i;j;k],UMOMX)
+              W(CHF_IX[i;j+1;k],UMOMY) = -W(CHF_IX[i;j;k],UMOMY)
+              W(CHF_IX[i;j+1;k],UMOMZ) = W(CHF_IX[i;j;k],UMOMZ)
+              W(CHF_IX[i;j+1;k],UBX) = W(CHF_IX[i;j;k],UBX)
+              W(CHF_IX[i;j+1;k],UBY) = -W(CHF_IX[i;j;k],UBY)
+              W(CHF_IX[i;j+1;k],UBZ) = W(CHF_IX[i;j;k],UBZ)
+              W(CHF_IX[i;j+1;k],UENG) = W(CHF_IX[i;j;k],UENG)
+           endif
+              F(CHF_IX[i;j;k],URHO) = zero
+              F(CHF_IX[i;j;k],UMOMX) = zero
+              F(CHF_IX[i;j;k],UMOMY) = zero
+              F(CHF_IX[i;j;k],UMOMZ) = zero
+              F(CHF_IX[i;j;k],UBX) = zero
+              F(CHF_IX[i;j;k],UBY) = zero
+              F(CHF_IX[i;j;k],UBZ) = zero
+              F(CHF_IX[i;j;k],UENG) = zero
+           CHF_ENDDO
+        endif
+c     CORNERS
+c$$$           i=iboxlo0
+c$$$           j=iboxlo1
+c$$$           do iv=1, CHF_NCOMP[W],1
+c$$$              W(CHF_IX[i-1;j-1;k],iv) = W(CHF_IX[i;j;k],iv)
+c$$$           enddo
+c$$$           i=iboxhi0
+c$$$           j=iboxlo1
+c$$$           do iv=1, CHF_NCOMP[W],1
+c$$$              W(CHF_IX[i+1;j-1;k],iv) = W(CHF_IX[i;j;k],iv)
+c$$$           enddo
+c$$$           i=iboxlo0
+c$$$           j=iboxhi1
+c$$$           do iv=1, CHF_NCOMP[W],1
+c$$$              W(CHF_IX[i-1;j+1;k],iv) = W(CHF_IX[i;j;k],iv)
+c$$$           enddo
+c$$$           i=iboxhi0
+c$$$           j=iboxhi1
+c$$$           do iv=1, CHF_NCOMP[W],1
+c$$$              W(CHF_IX[i+1;j+1;k],iv) = W(CHF_IX[i;j;k],iv)
+c           enddo
+        return
+        end
+
+c-----------------------------------------------------------------------
+c-----------------------------------------------------------------------
+        subroutine MHDDIFFUSIVEENERGYFLUXBCF(
+     &    CHF_FRA[F],
+     &    CHF_FRA[W],
+     &    CHF_CONST_REAL[time],
+     &    CHF_CONST_INT[lohisign],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[dir],
+     &    CHF_BOX[box])
+
+        real_t ke,r0,p0,umag,p,r
+        real_t CHF_DDECL[x;y;z]
+        real_t xofy,rg,pg,ws
+        real_t  uu,vv,ww
+        integer CHF_DDECL[i;j;k]
+        real_t bi,bj,bk
+        integer iv
+
+#include "EosCommon.fh"
+
+      write(6,*) 'DMHDBC dx ', dx,dir,lohisign
+c$$$      write(6,*) 'DMHDBC Box ', iboxlo0,iboxhi0, iboxlo1,iboxhi1
+c$$$      write(6,*) 'DMHDBC W ', iwlo0,iwhi0, iwlo1,iwhi1
+c$$$      write(6,*) 'DMHDBC F', iflo0,ifhi0, iflo1,ifhi1
+        if (dir .eq. 0) then
+          CHF_MULTIDO[box;i;j;k]
+          if(lohisign.eq.-1) then
+c             write(6,*) 'LO BDRY X ', i
+              W(CHF_IX[i-1;j;k],URHO) = W(CHF_IX[i;j;k],URHO)
+              W(CHF_IX[i-1;j;k],UMOMX) = -W(CHF_IX[i;j;k],UMOMX)
+              W(CHF_IX[i-1;j;k],UMOMY) = W(CHF_IX[i;j;k],UMOMY)
+              W(CHF_IX[i-1;j;k],UMOMZ) = W(CHF_IX[i;j;k],UMOMZ)
+              W(CHF_IX[i-1;j;k],UBX) = -W(CHF_IX[i;j;k],UBX)
+              W(CHF_IX[i-1;j;k],UBY) = W(CHF_IX[i;j;k],UBY)
+              W(CHF_IX[i-1;j;k],UBZ) = W(CHF_IX[i;j;k],UBZ)
+              W(CHF_IX[i-1;j;k],UENG) = W(CHF_IX[i;j;k],UENG)
+           else
+c             write(6,*) 'HI BDRY X ', i
+              W(CHF_IX[i+1;j;k],URHO) = W(CHF_IX[i;j;k],URHO)
+              W(CHF_IX[i+1;j;k],UMOMX) = -W(CHF_IX[i;j;k],UMOMX)
+              W(CHF_IX[i+1;j;k],UMOMY) = W(CHF_IX[i;j;k],UMOMY)
+              W(CHF_IX[i+1;j;k],UMOMZ) = W(CHF_IX[i;j;k],UMOMZ)
+              W(CHF_IX[i+1;j;k],UBX) = -W(CHF_IX[i;j;k],UBX)
+              W(CHF_IX[i+1;j;k],UBY) = W(CHF_IX[i;j;k],UBY)
+              W(CHF_IX[i+1;j;k],UBZ) = W(CHF_IX[i;j;k],UBZ)
+              W(CHF_IX[i+1;j;k],UENG) = W(CHF_IX[i;j;k],UENG)
+           endif
+              F(CHF_IX[i;j;k],0) = zero
+           CHF_ENDDO
+        else
+          CHF_MULTIDO[box;i;j;k]
+          if(lohisign.eq.-1) then
+c             write(6,*) 'LO BDRY Y ', j
+              W(CHF_IX[i;j-1;k],URHO) = W(CHF_IX[i;j;k],URHO)
+              W(CHF_IX[i;j-1;k],UMOMX) = W(CHF_IX[i;j;k],UMOMX)
+              W(CHF_IX[i;j-1;k],UMOMY) = -W(CHF_IX[i;j;k],UMOMY)
+              W(CHF_IX[i;j-1;k],UMOMZ) = W(CHF_IX[i;j;k],UMOMZ)
+              W(CHF_IX[i;j-1;k],UBX) = W(CHF_IX[i;j;k],UBX)
+              W(CHF_IX[i;j-1;k],UBY) = -W(CHF_IX[i;j;k],UBY)
+              W(CHF_IX[i;j-1;k],UBZ) = W(CHF_IX[i;j;k],UBZ)
+              W(CHF_IX[i;j-1;k],UENG) = W(CHF_IX[i;j;k],UENG)
+           else
+c             write(6,*) 'HI BDRY Y ', j
+              W(CHF_IX[i;j+1;k],URHO) = W(CHF_IX[i;j;k],URHO)
+              W(CHF_IX[i;j+1;k],UMOMX) = W(CHF_IX[i;j;k],UMOMX)
+              W(CHF_IX[i;j+1;k],UMOMY) = -W(CHF_IX[i;j;k],UMOMY)
+              W(CHF_IX[i;j+1;k],UMOMZ) = W(CHF_IX[i;j;k],UMOMZ)
+              W(CHF_IX[i;j+1;k],UBX) = W(CHF_IX[i;j;k],UBX)
+              W(CHF_IX[i;j+1;k],UBY) = -W(CHF_IX[i;j;k],UBY)
+              W(CHF_IX[i;j+1;k],UBZ) = W(CHF_IX[i;j;k],UBZ)
+              W(CHF_IX[i;j+1;k],UENG) = W(CHF_IX[i;j;k],UENG)
+           endif
+              F(CHF_IX[i;j;k],0) = zero
+           CHF_ENDDO
+        endif
+c     CORNERS
+c$$$           i=iboxlo0
+c$$$           j=iboxlo1
+c$$$           do iv=1, CHF_NCOMP[W],1
+c$$$              W(CHF_IX[i-1;j-1;k],iv) = W(CHF_IX[i;j;k],iv)
+c$$$           enddo
+c$$$           i=iboxhi0
+c$$$           j=iboxlo1
+c$$$           do iv=1, CHF_NCOMP[W],1
+c$$$              W(CHF_IX[i+1;j-1;k],iv) = W(CHF_IX[i;j;k],iv)
+c$$$           enddo
+c$$$           i=iboxlo0
+c$$$           j=iboxhi1
+c$$$           do iv=1, CHF_NCOMP[W],1
+c$$$              W(CHF_IX[i-1;j+1;k],iv) = W(CHF_IX[i;j;k],iv)
+c$$$           enddo
+c$$$           i=iboxhi0
+c$$$           j=iboxhi1
+c$$$           do iv=1, CHF_NCOMP[W],1
+c$$$              W(CHF_IX[i+1;j+1;k],iv) = W(CHF_IX[i;j;k],iv)
+c$$$           enddo
+        return
+        end
+
+c-----------------------------------------------------------------------
+c-----------------------------------------------------------------------
+        subroutine MHDRECONBC(
+     &    CHF_FRA[F],
+     &    CHF_CONST_FRA[W],
+     &    CHF_CONST_REAL[time],
+     &    CHF_CONST_INT[lohisign],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[dir],
+     &    CHF_BOX[box])
+
+        real_t ke,r0,p0,umag,p,r
+        real_t CHF_DDECL[x;y;z]
+        real_t xofy,rg,pg,ws
+        real_t  uu,vv,ww
+        integer CHF_DDECL[i;j;k]
+        real_t bi,bj,bk
+
+#include "EosCommon.fh"
+
+      write(6,*) 'MHDBC dx ', dx,dir,lohisign
+      write(6,*) 'MHDBC Box ', iboxlo0,iboxhi0, iboxlo1,iboxhi1
+      write(6,*) 'MHDBC W ', iwlo0,iwhi0, iwlo1,iwhi1
+      write(6,*) 'MHDBC F', iflo0,ifhi0, iflo1,ifhi1
+        if (dir .eq. 0) then
+          CHF_MULTIDO[box;i;j;k]
+c            if (lohisign .eq. -1) then
+               r=W(CHF_IX[i;j;k],WRHO)
+               uu=W(CHF_IX[i;j;k],WVELX)
+               vv=W(CHF_IX[i;j;k],WVELY)
+               ww=W(CHF_IX[i;j;k],WVELZ)
+               bi=W(CHF_IX[i;j;k],WBX)
+               bj=W(CHF_IX[i;j;k],WBY)
+               bk=W(CHF_IX[i;j;k],WBZ)
+               p=W(CHF_IX[i;j;k],WPRES)
+c            endif
+              F(CHF_IX[i;j;k],URHO) = r*uu
+              F(CHF_IX[i;j;k],UMOMX) = r*uu*uu + p
+     &                                +0.5D0*(bj*bj+bk*bk-bi*bi)
+              F(CHF_IX[i;j;k],UMOMY) = r*uu*vv-bi*bj
+              F(CHF_IX[i;j;k],UMOMZ) = r*uu*ww-bi*bk
+              F(CHF_IX[i;j;k],UBX) = zero
+              F(CHF_IX[i;j;k],UBY) = uu*bj-vv*bi
+              F(CHF_IX[i;j;k],UBZ) = uu*bk-ww*bi
+              F(CHF_IX[i;j;k],UENG) = (0.5*r*(uu*uu+vv*vv+ww*ww)
+     &                                + p/(gamma-one)+p+
+     &                                (bi*bi+bj*bj+bk*bk))*uu
+     &                                -bi*(uu*bi+vv*bj+ww*bk)
+              F(CHF_IX[i;j;k],DIVB)=bi
+c              F(CHF_IX[i;j;k],DIVB)=zero
+              F(CHF_IX[i;j;k],UFACE)=uu
+              F(CHF_IX[i;j;k],VFACE)=vv
+              F(CHF_IX[i;j;k],WFACE)=ww
+              F(CHF_IX[i;j;k],BXFACE)=bi
+              F(CHF_IX[i;j;k],BYFACE)=bj
+              F(CHF_IX[i;j;k],BZFACE)=bk
+           CHF_ENDDO
+        else
+          CHF_MULTIDO[box;i;j;k]
+c            if (lohisign .eq. -1) then
+               r=W(CHF_IX[i;j;k],WRHO)
+               uu=W(CHF_IX[i;j;k],WVELX)
+               vv=W(CHF_IX[i;j;k],WVELY)
+               ww=W(CHF_IX[i;j;k],WVELZ)
+               bi=W(CHF_IX[i;j;k],WBX)
+               bj=W(CHF_IX[i;j;k],WBY)
+               bk=W(CHF_IX[i;j;k],WBZ)
+               p=W(CHF_IX[i;j;k],WPRES)
+c            endif
+              F(CHF_IX[i;j;k],URHO) = r*vv
+              F(CHF_IX[i;j;k],UMOMX) = r*uu*vv-bi*bj
+              F(CHF_IX[i;j;k],UMOMY) = r*vv*vv + p
+     &                                +0.5D0*(bi*bi+bk*bk-bj*bj)
+              F(CHF_IX[i;j;k],UMOMZ) = r*vv*ww-bj*bk
+              F(CHF_IX[i;j;k],UBX) = vv*bi-uu*bj
+              F(CHF_IX[i;j;k],UBY) = zero
+              F(CHF_IX[i;j;k],UBZ) = vv*bk-ww*bj
+              F(CHF_IX[i;j;k],UENG) = (0.5*r*(uu*uu+vv*vv+ww*ww)
+     &                                + p/(gamma-one)+p+
+     &                                (bi*bi+bj*bj+bk*bk))*vv
+     &                                -bj*(uu*bi+vv*bj+ww*bk)
+              F(CHF_IX[i;j;k],DIVB)=bj
+c              F(CHF_IX[i;j;k],DIVB)=zero
+              F(CHF_IX[i;j;k],UFACE)=uu
+              F(CHF_IX[i;j;k],VFACE)=vv
+              F(CHF_IX[i;j;k],WFACE)=ww
+              F(CHF_IX[i;j;k],BXFACE)=bi
+              F(CHF_IX[i;j;k],BYFACE)=bj
+              F(CHF_IX[i;j;k],BZFACE)=bk
+           CHF_ENDDO
+        endif
+
+        return
+        end
+
+c-----------------------------------------------------------------------
+        subroutine RECONMHDPRIMBCF(
+     &    CHF_FRA[WG],
+     &    CHF_CONST_FRA[W],
+     &    CHF_CONST_REAL[time],
+     &    CHF_CONST_INT[lohisign],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[dir],
+     &    CHF_BOX[box])
+
+        real_t ke,r0,p0,umag,p,r
+        real_t CHF_DDECL[x;y;z]
+        real_t xofy,rg,pg,ws
+        real_t  uu,vv,ww
+        integer CHF_DDECL[i;j;k]
+        real_t bi,bj,bk
+        real_t vl(8), vr(8), vm(8)
+
+#include "EosCommon.fh"
+
+        write(6,*) 'MPRIMHDBC dx ', dx,dir,lohisign
+c        write(6,*) 'MHDBC Box ', iboxlo0,iboxhi0, iboxlo1,iboxhi1
+c        write(6,*) 'MHDBC W ', iwlo0,iwhi0, iwlo1,iwhi1
+c        write(6,*) 'MHDBC F', iflo0,ifhi0, iflo1,ifhi1
+
+        if (dir .eq. 0) then
+          CHF_MULTIDO[box;i;j;k]
+               vr(1)=W(CHF_IX[i;j;k],WRHO)
+               vr(2)=W(CHF_IX[i;j;k],WVELX)
+               vr(3)=W(CHF_IX[i;j;k],WVELY)
+               vr(4)=W(CHF_IX[i;j;k],WVELZ)
+               vr(5)=W(CHF_IX[i;j;k],WBX)
+               vr(6)=W(CHF_IX[i;j;k],WBY)
+               vr(7)=W(CHF_IX[i;j;k],WBZ)
+               vr(8)=W(CHF_IX[i;j;k],WPRES)
+               vl(1)=vr(1)
+               vl(2)=-vr(2)
+               vl(3)=vr(3)
+               vl(4)=vr(4)
+               vl(5)=-vr(5)
+               vl(6)=vr(6)
+               vl(7)=vr(7)
+               vl(8)=vr(8)
+            if (lohisign .eq. -1) then
+               call RiemannProblem(vm,vl,vr,1,1,dir)
+            else
+               call RiemannProblem(vm,vr,vl,1,1,dir)
+            endif
+              WG(CHF_IX[i;j;k],URHO) = vm(1)
+              WG(CHF_IX[i;j;k],UMOMX) = vm(2)
+              WG(CHF_IX[i;j;k],UMOMY) = vm(3)
+              WG(CHF_IX[i;j;k],UMOMZ) = vm(4)
+              WG(CHF_IX[i;j;k],UBX) = vm(5)
+              WG(CHF_IX[i;j;k],UBY) = vm(6)
+              WG(CHF_IX[i;j;k],UBZ) = vm(7)
+              WG(CHF_IX[i;j;k],UENG) = vm(8)
+           CHF_ENDDO
+        else
+          CHF_MULTIDO[box;i;j;k]
+               vr(1)=W(CHF_IX[i;j;k],WRHO)
+               vr(4)=W(CHF_IX[i;j;k],WVELX)
+               vr(2)=W(CHF_IX[i;j;k],WVELY)
+               vr(3)=W(CHF_IX[i;j;k],WVELZ)
+               vr(7)=W(CHF_IX[i;j;k],WBX)
+               vr(5)=W(CHF_IX[i;j;k],WBY)
+               vr(6)=W(CHF_IX[i;j;k],WBZ)
+               vr(8)=W(CHF_IX[i;j;k],WPRES)
+               vl(1)=vr(1)
+               vl(2)=-vr(2)
+               vl(3)=vr(3)
+               vl(4)=vr(4)
+               vl(5)=-vr(5)
+               vl(6)=vr(6)
+               vl(7)=vr(7)
+               vl(8)=vr(8)
+c               write(6,*) 'Calling RiemannProblem',lohisign,dir
+c               write(6,*) 'Calling RiemannProblem',vl
+c               write(6,*) 'Calling RiemannProblem',vr
+            if (lohisign .eq. -1) then
+               call RiemannProblem(vm,vl,vr,1,1,dir)
+            else
+               call RiemannProblem(vm,vr,vl,1,1,dir)
+            endif
+c            write(6,*) 'RiemannProblem Soln',dir,i,vm(5), vm(2)
+c            write(6,*) 'RiemannProblem lr',vr(5), vl(5)
+              WG(CHF_IX[i;j;k],URHO) = vm(1)
+              WG(CHF_IX[i;j;k],UMOMY) = vm(2)
+              WG(CHF_IX[i;j;k],UMOMZ) = vm(3)
+              WG(CHF_IX[i;j;k],UMOMX) = vm(4)
+              WG(CHF_IX[i;j;k],UBY) = vm(5)
+              WG(CHF_IX[i;j;k],UBZ) = vm(6)
+              WG(CHF_IX[i;j;k],UBX) = vm(7)
+              WG(CHF_IX[i;j;k],UENG) = vm(8)
+           CHF_ENDDO
+        endif
+        return
+        end
+c
+c-----------------------------------------------------------------------
+c     Should not be called for the Recon problem
+        subroutine MHDRECONSOLIDBC(
+     &    CHF_FRA[F],
+     &    CHF_CONST_FRA[W],
+     &    CHF_CONST_REAL[time],
+     &    CHF_CONST_INT[lohisign],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[dir],
+     &    CHF_BOX[box])
+
+        real_t ke,r0,p0,umag,p,r
+        real_t CHF_DDECL[x;y;z]
+        real_t xofy,rg,pg,ws
+        real_t  uu,vv,ww
+        integer CHF_DDECL[i;j;k]
+        real_t bi,bj,bk
+        real_t vl(8), vr(8), vm(8)
+
+#include "EosCommon.fh"
+
+      write(6,*) 'SMHDBC dx ', dx,dir,lohisign
+c$$$      write(6,*) 'SMHDBC Box ', iboxlo0,iboxhi0, iboxlo1,iboxhi1
+c$$$      write(6,*) 'SMHDBC W ', iwlo0,iwhi0, iwlo1,iwhi1
+c$$$      write(6,*) 'SMHDBC F', iflo0,ifhi0, iflo1,ifhi1
+        if (dir .eq. 0) then
+          CHF_MULTIDO[box;i;j;k]
+               vr(1)=W(CHF_IX[i;j;k],WRHO)
+               vr(2)=W(CHF_IX[i;j;k],WVELX)
+               vr(3)=W(CHF_IX[i;j;k],WVELY)
+               vr(4)=W(CHF_IX[i;j;k],WVELZ)
+               vr(5)=W(CHF_IX[i;j;k],WBX)
+               vr(6)=W(CHF_IX[i;j;k],WBY)
+               vr(7)=W(CHF_IX[i;j;k],WBZ)
+               vr(8)=W(CHF_IX[i;j;k],WPRES)
+               vl(1)=vr(1)
+               vl(2)=-vr(2)
+               vl(3)=vr(3)
+               vl(4)=vr(4)
+               vl(5)=-vr(5)
+               vl(6)=vr(6)
+               vl(7)=vr(7)
+               vl(8)=vr(8)
+            if (lohisign .eq. -1) then
+               call RiemannProblem(vm,vl,vr,1,1,dir)
+            else
+               call RiemannProblem(vm,vr,vl,1,1,dir)
+            endif
+c$$$               vl(1)=W(CHF_IX[i;j;k],WRHO)
+c$$$               vl(2)=W(CHF_IX[i;j;k],WVELX)
+c$$$               vl(3)=W(CHF_IX[i;j;k],WVELY)
+c$$$               vl(4)=W(CHF_IX[i;j;k],WVELZ)
+c$$$               vl(5)=W(CHF_IX[i;j;k],WBX)
+c$$$               vl(6)=W(CHF_IX[i;j;k],WBY)
+c$$$               vl(7)=W(CHF_IX[i;j;k],WBZ)
+c$$$               vl(8)=W(CHF_IX[i;j;k],WPRES)
+c$$$               vr(1)=vl(1)
+c$$$               vr(1)=-vl(2)
+c$$$               vr(1)=vl(3)
+c$$$               vr(1)=vl(4)
+c$$$               vr(1)=-vl(5)
+c$$$               vr(1)=vl(6)
+c$$$               vr(1)=vl(7)
+c$$$               vr(1)=vl(8)
+c$$$               call RiemannProblem(vm,vl,vr,1,1,dir)
+c$$$            endif
+c            write(6,*) 'RiemannProblem Soln',dir,j,vm(5), vm(2)
+c            write(6,*) 'RiemannProblem lr',lohisign,vr(5), vl(5)
+              F(CHF_IX[i;j;k],URHO) = zero
+              F(CHF_IX[i;j;k],UMOMX) = vm(8)
+c     &                                +0.5D0*(vm(6)*vm(6)+vm(7)*vm(7))
+              F(CHF_IX[i;j;k],UMOMY) = zero
+              F(CHF_IX[i;j;k],UMOMZ) = zero
+              F(CHF_IX[i;j;k],UBX) = zero
+              F(CHF_IX[i;j;k],UBY) = zero
+              F(CHF_IX[i;j;k],UBZ) = zero
+              F(CHF_IX[i;j;k],UENG) = zero
+              F(CHF_IX[i;j;k],DIVB)=vm(5)
+              F(CHF_IX[i;j;k],UFACE)=vm(2)
+              F(CHF_IX[i;j;k],VFACE)=vm(3)
+              F(CHF_IX[i;j;k],WFACE)=vm(4)
+              F(CHF_IX[i;j;k],BXFACE)=vm(5)
+              F(CHF_IX[i;j;k],BYFACE)=vm(6)
+              F(CHF_IX[i;j;k],BZFACE)=vm(7)
+c              F(CHF_IX[i;j;k],TFACE)=(vm(8)-
+c     &             0.5D0*(vm(6)*vm(6)+vm(7)*vm(7)))/vm(1)/rgas
+           CHF_ENDDO
+        else
+          CHF_MULTIDO[box;i;j;k]
+               vr(1)=W(CHF_IX[i;j;k],WRHO)
+               vr(4)=W(CHF_IX[i;j;k],WVELX)
+               vr(2)=W(CHF_IX[i;j;k],WVELY)
+               vr(3)=W(CHF_IX[i;j;k],WVELZ)
+               vr(7)=W(CHF_IX[i;j;k],WBX)
+               vr(5)=W(CHF_IX[i;j;k],WBY)
+               vr(6)=W(CHF_IX[i;j;k],WBZ)
+               vr(8)=W(CHF_IX[i;j;k],WPRES)
+               vl(1)=vr(1)
+               vl(2)=-vr(2)
+               vl(3)=vr(3)
+               vl(4)=vr(4)
+               vl(5)=-vr(5)
+               vl(6)=vr(6)
+               vl(7)=vr(7)
+               vl(8)=vr(8)
+c               write(6,*) 'Calling RiemannProblem',lohisign,dir
+c               write(6,*) 'Calling RiemannProblem',vl
+c               write(6,*) 'Calling RiemannProblem',vr
+            if (lohisign .eq. -1) then
+               call RiemannProblem(vm,vl,vr,1,1,dir)
+            else
+               call RiemannProblem(vm,vr,vl,1,1,dir)
+            endif
+c            write(6,*) 'RiemannProblem Soln',dir,i,vm(5), vm(2)
+c            write(6,*) 'RiemannProblem lr',vr(5), vl(5)
+              F(CHF_IX[i;j;k],URHO) = zero
+              F(CHF_IX[i;j;k],UMOMY) = vm(8)
+c     &                                +0.5D0*(vm(6)*vm(6)+vm(7)*vm(7))
+              F(CHF_IX[i;j;k],UMOMX) = zero
+              F(CHF_IX[i;j;k],UMOMZ) = zero
+              F(CHF_IX[i;j;k],UBX) = zero
+              F(CHF_IX[i;j;k],UBY) = zero
+              F(CHF_IX[i;j;k],UBZ) = zero
+              F(CHF_IX[i;j;k],UENG) = zero
+              F(CHF_IX[i;j;k],DIVB)=vm(5)
+              F(CHF_IX[i;j;k],UFACE)=vm(4)
+              F(CHF_IX[i;j;k],VFACE)=vm(2)
+              F(CHF_IX[i;j;k],WFACE)=vm(3)
+              F(CHF_IX[i;j;k],BXFACE)=vm(7)
+              F(CHF_IX[i;j;k],BYFACE)=vm(5)
+              F(CHF_IX[i;j;k],BZFACE)=vm(6)
+c              F(CHF_IX[i;j;k],TFACE)=(vm(8)-
+c     &             0.5D0*(vm(6)*vm(6)+vm(7)*vm(7)))/vm(1)/rgas
+           CHF_ENDDO
+        endif
+        return
+        end
+
+c-----------------------------------------------------------------------
+        subroutine MHDRECONSLOPEBCS(
+     &    CHF_FRA[dW],
+     &    CHF_CONST_FRA[W],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[dir],
+     &    CHF_BOX[loBox],
+     &    CHF_CONST_INT[hasLo],
+     &    CHF_BOX[hiBox],
+     &    CHF_CONST_INT[hasHi])
+
+        integer CHF_DDECL[i;j;k],CHF_DDECL[ioff;joff;koff]
+        integer CHF_DDECL[inorm;itan1;itan2],spacedim
+
+
+        spacedim = CH_SPACEDIM
+c$$$      write(6,*) 'MHDSLOPEBC dx', dx,dir
+c$$$      write(6,*) 'MHDSLOPEBC has', hasLo,hasHi
+c$$$      write(6,*) 'MHDSLOPEBC LOBox', iloboxlo0,iloboxhi0,
+c$$$     &           iloboxlo1,iloboxhi1
+c$$$      write(6,*) 'MHDSLOPEBC HiBox', ihiboxlo0,ihiboxhi0,
+c$$$     &           ihiboxlo1,ihiboxhi1
+c$$$      write(6,*) 'MHDSLOPEBC W ', iwlo0,iwhi0, iwlo1,iwhi1
+c$$$      write(6,*) 'MHDSLOPEBC dW ', idwlo0,idwhi0, idwlo1,idwhi1
+
+        return
+        end
+c-----------------------------------------------------------------------
+        subroutine RECONPHIINIT(
+     &    CHF_FRA[U],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+#include "EosCommon.fh"
+      write(6,*) 'PHIINIT dx ', dx
+      write(6,*) 'PHIINIT Box ', iboxlo0,iboxhi0, iboxlo1,iboxhi1
+#if CH_SPACEDIM==2
+      write(6,*) 'PHIINIT U ', iulo0,iuhi0, iulo1,iuhi1
+#elif CH_SPACEDIM==3
+      write(6,*) 'PHIINIT U ', iulo0,iuhi0, iulo1,iuhi1,iulo2,iuhi2
+#endif
+c
+        CHF_MULTIDO[box;i;j;k]
+          U(CHF_IX[i;j;k],0) = zero
+        CHF_ENDDO
+
+        return
+        end
+c-----------------------------------------------------------------------
+        subroutine RECONPHIBCLO(
+     &    CHF_FRA[U],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[dir],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+c        write(6,*) 'PHIBCLO dx ', dx,dir
+c        write(6,*) 'PHIBCLO Box ', iboxlo0,iboxhi0, iboxlo1,iboxhi1
+c        write(6,*) 'PHIBCLO U ', iulo0,iuhi0, iulo1,iuhi1
+c
+        if (dir .eq. 0) then
+          CHF_MULTIDO[box;i;j;k]
+c              U(CHF_IX[i+1;j;k],0) = zero
+              U(CHF_IX[i;j;k],0) = U(CHF_IX[i+1;j;k],0)
+c     &         -2.5D0/dsqrt(16.D0*datan(1.D0))/64.0
+c              U(CHF_IX[i;j;k],0) = zero
+           CHF_ENDDO
+        else if (dir .eq. 1) then
+          CHF_MULTIDO[box;i;j;k]
+c              U(CHF_IX[i;j+1;k],0) = zero
+              U(CHF_IX[i;j;k],0) = U(CHF_IX[i;j+1;k],0)
+c              U(CHF_IX[i;j;k],0) = zero
+           CHF_ENDDO
+        else if (dir .eq. 2) then
+          CHF_MULTIDO[box;i;j;k]
+              U(CHF_IX[i;j;k],0) = -U(CHF_IX[i;j;k+1],0)
+           CHF_ENDDO
+        endif
+
+        return
+        end
+
+c-----------------------------------------------------------------------
+        subroutine RECONPHIBCHI(
+     &    CHF_FRA[U],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[dir],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+c      write(6,*) 'PHIBCHI dx ', dx,dir
+c      write(6,*) 'PHIBCHI Box ', iboxlo0,iboxhi0, iboxlo1,iboxhi1
+c      write(6,*) 'PHIBCHI U ', iulo0,iuhi0, iulo1,iuhi1
+        if (dir .eq. 0) then
+          CHF_MULTIDO[box;i;j;k]
+c              U(CHF_IX[i-1;j;k],0) = zero
+              u(chf_ix[i;j;k],0) = u(chf_ix[i-1;j;k],0)
+c     &         +2.5D0/dsqrt(16.D0*datan(1.D0))/64.0
+c              u(chf_ix[i;j;k],0) = zero
+           chf_enddo
+        else if (dir .eq. 1) then
+          chf_multido[box;i;j;k]
+c          U(CHF_IX[i;j-1;k],0) = zero
+              U(CHF_IX[i;j;k],0) = U(CHF_IX[i;j-1;k],0)
+c              U(CHF_IX[i;j;k],0) = zero
+           CHF_ENDDO
+        else if (dir .eq. 2) then
+          CHF_MULTIDO[box;i;j;k]
+              U(CHF_IX[i;j;k],0) = -U(CHF_IX[i;j;k-1],0)
+           CHF_ENDDO
+        endif
+
+        return
+        end
+
+c-----------------------------------------------------------------------
+        subroutine RECONMHDFACEMAGBCF(
+     &    CHF_FRA[F],
+     &    CHF_CONST_REAL[time],
+     &    CHF_CONST_INT[lohisign],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[dir],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+        integer iv
+
+        if (dir .eq. 0) then
+          CHF_MULTIDO[box;i;j;k]
+              F(CHF_IX[i;j;k],0) = zero
+           CHF_ENDDO
+        else
+          CHF_MULTIDO[box;i;j;k]
+              F(CHF_IX[i;j;k],0) = zero
+           CHF_ENDDO
+        endif
+        return
+        end
+
+c-----------------------------------------------------------------------

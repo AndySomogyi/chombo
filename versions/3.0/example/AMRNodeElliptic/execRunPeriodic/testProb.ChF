@@ -1,0 +1,117 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+C     --------------------------------------------------------------
+C     cenin     =>   coordinates of center
+C     sidein    =>   lengths of sides
+C     --------------------------------------------------------------
+      subroutine INITTRIG(
+     &     CHF_REALVECT[cenin],
+     &     CHF_REALVECT[sidein])
+      REAL_T CHF_DDECL[xcen; ycen; zcen]
+      REAL_T CHF_DDECL[xfac; yfac; zfac]
+      REAL_T twopi
+      common / cbtrig / CHF_DDECL[xcen; ycen; zcen],
+     &     CHF_DDECL[xfac; yfac; zfac]
+
+      CHF_DTERM[
+      xcen = cenin(0) ;
+      ycen = cenin(1) ;
+      zcen = cenin(2) ]
+
+      twopi = two * Pi;
+      CHF_DTERM[
+      xfac = twopi / sidein(0) ;
+      yfac = twopi / sidein(1) ;
+      zfac = twopi / sidein(2) ]
+
+      return
+      end
+
+
+C     --------------------------------------------------------------
+C     subroutine GETRHSNODEPOIS
+C     initialize rhs
+C
+C     INPUTS (=>),  OUTPUTS(<=):
+C     rhs      <=    right-hand side
+C     box       =>   this box
+C     dx        =>   mesh spacing
+C
+C     dtgraves nov 16, 1999
+C     petermc, 8 Feb 2001, modified for nodes.
+C     --------------------------------------------------------------
+      subroutine GETRHSNODEPOIS(
+     &     CHF_FRA[rhs],
+     $     CHF_BOX[box],
+     $     CHF_CONST_REAL[dx])
+      REAL_T CHF_DDECL[xcen; ycen; zcen]
+      REAL_T CHF_DDECL[xfac; yfac; zfac]
+      common / cbtrig / CHF_DDECL[xcen; ycen; zcen],
+     &     CHF_DDECL[xfac; yfac; zfac]
+      integer nv
+      integer CHF_DDECL[i;j;k]
+      REAL_T CHF_DDECL[xi;yi;zi]
+
+      do nv = 0, CHF_NCOMP[rhs] - 1
+
+         CHF_MULTIDO[box; i; j; k]
+
+            CHF_DTERM[
+            xi = xfac * (dx*i - xcen) ;
+            yi = yfac * (dx*j - ycen) ;
+            zi = zfac * (dx*k - zcen) ]
+
+            rhs(CHF_IX[i; j; k], nv) =
+     &        CHF_DTERM[sin(xi); + sin(yi); + sin(zi)]
+
+         CHF_ENDDO
+      enddo
+
+      return
+      end
+
+
+c     =================================================-
+      subroutine GETPHINODE(
+     &     CHF_FRA[phi],
+     $     CHF_BOX[box],
+     $     CHF_CONST_REAL[dx])
+      REAL_T CHF_DDECL[xcen; ycen; zcen]
+      REAL_T CHF_DDECL[xfac; yfac; zfac]
+      common / cbtrig / CHF_DDECL[xcen; ycen; zcen],
+     &     CHF_DDECL[xfac; yfac; zfac]
+      integer nv
+      integer CHF_DDECL[i;j;k]
+      REAL_T CHF_DDECL[xi;yi;zi]
+      REAL_T CHF_DDECL[xcoef; ycoef; zcoef]
+
+      CHF_DTERM[
+      xcoef = - one / (xfac * xfac) ;
+      ycoef = - one / (yfac * yfac) ;
+      zcoef = - one / (zfac * zfac) ]
+
+      do nv = 0, CHF_NCOMP[phi] - 1
+
+         CHF_MULTIDO[box; i; j; k]
+
+            CHF_DTERM[
+            xi = xfac * (dx*i - xcen) ;
+            yi = yfac * (dx*j - ycen) ;
+            zi = zfac * (dx*k - zcen) ]
+
+            phi(CHF_IX[i; j; k], nv) = CHF_DTERM[
+     &           xcoef * sin(xi) ;
+     &           + ycoef * sin(yi) ;
+     &           + zcoef * sin(zi) ]
+
+         CHF_ENDDO
+      enddo
+
+      return
+      end

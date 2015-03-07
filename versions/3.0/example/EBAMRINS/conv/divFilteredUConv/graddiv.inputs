@@ -1,0 +1,59 @@
+use_only_nonconservative_diff = 0
+num_filter_iterations = 10
+max_step  	      = 0
+velocity_frequencies = 1.0 2.0 3.0
+velocity_magnitudes = 1.0 2.0 3.0
+use_checkerboard_velocity = 1
+##fixed step at finest level. negative for no fixed step
+#nx = 64
+#fixed_dt              = 8.0e-4
+#nx = 128
+fixed_dt              = 4.0e-4
+max_time              = 6.0e-3
+use_limiting          = 0
+domain_length         = 4.0
+max_level	      = 0
+
+#this is the coarsest box of the coarsest level
+n_cell                = 16 16 16
+#n_cell                =  32 32 32
+#n_cell                = 64 64 64 
+#n_cell                = 128 32 32
+#n_cell                = 128 128 128
+ref_ratio	      = 2 2 2 2
+
+checkpoint_interval   = -1
+plot_interval	      = 10
+#max_grid_size	      = 32
+max_grid_size	      = 1024
+fill_ratio	      = 0.7
+block_factor	      = 8
+regrid_interval	      = 2
+##this has to be bigger than one!
+max_dt_grow	      = 1.1  
+cfl		      = 0.5
+init_cfl	      = 0.5
+refine_threshold      = 0.1
+verbosity	      = 1
+nesting_radius	      = 2
+tag_buffer	      = 2
+flow_dir	      = 0
+spot_center	      = 0.15 0.5 0.25
+spot_radius	      = 0.1
+inflow_vel	      = 1.0
+
+do_error_output  = 1
+test_verbosity = 3
+###geometry flag
+## 0 is all regular
+#which_geom = 0
+
+## 5 is a sphere
+which_geom = 5
+
+##sphere stuff
+sphere_radius = 0.2
+#sphere_center = 0.36 0.5 0.5
+sphere_center = 0.5 0.5 0.5
+
+

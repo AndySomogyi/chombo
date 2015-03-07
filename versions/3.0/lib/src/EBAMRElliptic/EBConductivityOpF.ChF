@@ -1,0 +1,170 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+
+#include "CONSTANTS.H"
+      subroutine incrapplyebco(
+     $     chf_fra1[lhs],
+     $     chf_const_fra1[interiorflux],
+     $     chf_const_fra1[domainfluxlo],
+     $     chf_const_fra1[domainfluxhi],
+     $     chf_const_real[beta],
+     $     chf_const_real[dx],
+     $     chf_box[lobox],
+     $     chf_box[hibox],
+     $     chf_box[centerbox],
+     $     chf_const_int[haslo],
+     $     chf_const_int[hashi],
+     $     chf_const_int[facedir])
+
+      integer chf_ddecl[ii,i;jj,j;kk,k]
+
+
+      chf_dterm[
+      ii = chf_id(facedir, 0);
+      jj = chf_id(facedir, 1);
+      kk = chf_id(facedir, 2)]
+
+      chf_multido[centerbox; i; j; k]
+
+      lhs(chf_ix[i;j;k]) = lhs(chf_ix[i;j;k])
+     $     +beta*
+     $     (interiorflux(chf_ix[i+ii;j+jj;k+kk])
+     $     -interiorflux(chf_ix[i   ;j   ;k   ]))/dx
+
+      chf_enddo
+
+
+      if(haslo .eq. 1) then
+         chf_multido[lobox; i; j; k]
+
+         lhs(chf_ix[i;j;k]) = lhs(chf_ix[i;j;k])
+     $        + beta*
+     $        (interiorflux(chf_ix[i+ii;j+jj;k+kk])
+     $        -domainfluxlo(chf_ix[i   ;j   ;k   ]))/dx
+
+         chf_enddo
+      endif
+
+      if(hashi .eq. 1) then
+         chf_multido[hibox; i; j; k]
+
+         lhs(chf_ix[i;j;k]) = lhs(chf_ix[i;j;k])
+     $        + beta*
+     $        (domainfluxhi(chf_ix[i+ii;j+jj;k+kk])
+     $        -interiorflux(chf_ix[i   ;j   ;k   ]))/dx
+
+         chf_enddo
+      endif
+
+
+      return
+      end
+
+      subroutine decrinvrelcoefebco(
+     &     chf_fra1[relcoef],
+     &     chf_fra1[bcoef],
+     &     chf_const_real[beta],
+     &     chf_box[box],
+     $     chf_real[dx],
+     $     chf_int[idir])
+
+      integer chf_ddecl[i;j;k]
+      integer chf_ddecl[ii;jj;kk]
+
+      chf_dterm[
+      ii = chf_id(idir, 0);
+      jj = chf_id(idir, 1);
+      kk = chf_id(idir, 2)]
+
+      chf_multido[box;i;j;k]
+
+      relcoef(chf_ix[i;j;k]) = relcoef(chf_ix[i;j;k])
+     $     - beta*(
+     $     bcoef(chf_ix[i+ii;j+jj;k+kk]) +
+     $     bcoef(chf_ix[i   ;j   ;k   ]))/(dx*dx)
+
+      chf_enddo
+
+      return
+      end
+ccccccccccccccccc
+      subroutine invertlambdaebco(
+     &     chf_fra1[lambda],
+     $     chf_real[safety],
+     &     chf_box[box])
+
+      integer chf_ddecl[i;j;k]
+
+      chf_multido[box;i;j;k]
+         lambda(chf_ix[i;j;k]) = safety/(lambda(chf_ix[i;j;k]))
+      chf_enddo
+
+      return
+      end
+
+      subroutine getfluxebco(
+     &     chf_fra1[flux],
+     $     chf_const_fra1[bcoef],
+     &     chf_const_fra1[phi],
+     &     chf_box[opphibox],
+     $     chf_const_real[dx],
+     $     chf_const_int[idir])
+
+      integer chf_ddecl[i;j;k]
+      integer chf_ddecl[ioff;joff;koff]
+
+      real_t oneoverdx
+
+      chf_dterm[
+      ioff = chf_id(0,idir);
+      joff = chf_id(1,idir);
+      koff = chf_id(2,idir)]
+
+
+      chf_multido[opphibox;i;j;k]
+
+      oneoverdx = bcoef(chf_ix[i;j;k])/dx
+      flux(chf_ix[i;j;k]) =
+     $     oneoverdx*(
+     $     phi(chf_ix[i     ;j     ;k     ]) -
+     $     phi(chf_ix[i-ioff;j-joff;k-koff]) )
+
+
+      chf_enddo
+
+      return
+      end
+
+      subroutine gsrbebco(
+     &     chf_fra1[phi],
+     &     chf_const_fra1[lph],
+     &     chf_const_fra1[rhs],
+     &     chf_const_fra1[lam],
+     &     chf_box[coloredbox])
+
+      integer chf_ddecl[i;j;k]
+      REAL_T phio, lamo, rhso, lpho
+
+      chf_multido[coloredbox;i;j;k;2]
+
+         phio  = phi(chf_ix[i;j;k])
+         lamo  = lam(chf_ix[i;j;k])
+         rhso  = rhs(chf_ix[i;j;k])
+         lpho  = lph(chf_ix[i;j;k])
+
+         phi(chf_ix[i;j;k]) =
+     $        phi(chf_ix[i;j;k]) +
+     $        lam(chf_ix[i;j;k])*(
+     $        rhs(chf_ix[i;j;k]) -
+     $        lph(chf_ix[i;j;k]))
+
+       chf_enddo
+
+      return
+      end
+
+

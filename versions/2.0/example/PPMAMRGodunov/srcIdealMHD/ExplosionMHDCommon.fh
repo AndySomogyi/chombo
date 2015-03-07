@@ -1,0 +1,39 @@
+#ifdef CH_LANG_CC
+/*
+*      _______              __
+*     / ___/ /  ___  __ _  / /  ___
+*    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+*    \___/_//_/\___/_/_/_/_.__/\___/
+*    Please refer to Copyright.txt, in Chombo's root directory.
+*/
+#endif
+
+C
+C   Fortran parameters for the explosion example:
+C
+C     pjump       - p(explosion)/p0
+C     rhojump     - rho(explosion)/rho0
+C     p0          - ambient pressure
+C     rho0        - ambient density
+C     Bdir        - magnetic field direction
+C     Bmag        - magnetic field magnitude   
+C     center[xyz] - Center of the explosion
+C     size        - Initial radius of the explosion
+C     vel[xyz]    - Initial velocity of the gas
+C     artvisc     - Artificial viscosity coefficient
+C
+        real_t pjump, rhojump, p0, rho0
+        integer Bdir
+        real_t Bmag
+        real_t centerx,centery,centerz
+        real_t size
+        real_t velx,vely,velz
+        real_t artvisc
+        common /explosioncm/
+     &                       pjump, rhojump, p0, rho0,
+     &                       centerx,centery,centerz,
+     &                       size,
+     &                       velx,vely,velz,
+     &                       artvisc,
+     &                       Bmag, Bdir
+

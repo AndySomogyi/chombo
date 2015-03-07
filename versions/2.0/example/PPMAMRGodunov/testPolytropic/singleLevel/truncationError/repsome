@@ -1,0 +1,99 @@
+#!/bin/csh -f
+#
+# repsome {plm | ppm} {2d | 3d} testname wave minres maxres
+#
+# Report the error the computation for one wave number, one timestep, and a
+# variety of resolutions
+#
+
+# Get the predictor step to use, plm or ppm, and the dimension, 2d or 3d
+# and the test to use
+set pred=${1}
+set dim=${2}
+set testname=${3}
+
+# Get the wave # of the plane wave
+set wave=(${4})
+
+# Get the minimum and maximum resolutions for the computation
+set minres=${5}
+set maxres=${6}
+
+# Make sure there is a "results" directory
+if (! -e results) then
+  mkdir results
+endif
+
+# Setup the basename for all the files
+set fbwave=`echo "${wave}" | sed -e 's/ /./g'`
+set filebase=results/trunc.${pred}.${testname}.${fbwave}
+
+echo ""
+
+# Go through each norm
+foreach norm (L1 L2 Linf)
+  # Print out norm
+  echo "    ${norm}:"
+
+  # Print out column headers
+  echo -n "    "
+  echo ${minres} ${maxres} | awk -f repsome1.awk
+
+  # Start with first component
+  set nvar=1
+
+  # Loop until no component found (see enclosed code)
+  while (1)
+    # Set the initial previous (lower) and current (higher) resolutions compared
+    set prevres=${minres}
+    set curres=`expr ${prevres} \* 2`
+
+    # Zero filled previous and current resolutions (used in filenames)
+    set fbprevres=`echo ${prevres} | awk '{printf("%04d",$1);}'`
+    set fbcurres=`echo ${curres} | awk '{printf("%04d",$1);}'`
+
+    # File with the error norms/summaries
+    set errfile=${filebase}.${fbprevres}.${fbcurres}.${dim}.err
+
+    # Get the current component name
+    set compname=`awk -f repsome2.awk nvar=${nvar} ${errfile}`
+
+    # Stop if all the components have been listed
+    if ("$compname" == "") break
+
+    # No error data for the component - yet
+    set comperr=""
+
+    # Loop through all adjacent pairs of resoluitons
+    while (${curres} <= ${maxres})
+      # Zero filled previous and current resolutions (used in filenames)
+      set fbprevres=`echo ${prevres} | awk '{printf("%04d",$1);}'`
+      set fbcurres=`echo ${curres} | awk '{printf("%04d",$1);}'`
+
+      # File with the error norms/summaries
+      set errfile=${filebase}.${fbprevres}.${fbcurres}.${dim}.err
+
+      # A file containing the "dt" used
+      set dtfile=${filebase}.${fbprevres}.2.${dim}.inputs
+
+      # Get the "dt" used
+      set dt=`cat ${dtfile} | grep 'fixed_dt' | awk '{print $NF;}'`
+
+      set comperr="${comperr} `awk -f repsome3.awk dt=${dt} compname=${compname} norm=${norm} ${errfile}`"
+
+      # Move onto the next pair of resolutions
+      set prevres=${curres}
+      set curres=`expr ${prevres} \* 2`
+    end
+
+    echo -n "    "
+    echo "${compname} ${comperr}" | awk -f repsome4.awk
+
+    # Move onto the next component
+    @ nvar++
+  end
+
+  echo ""
+end
+
+echo ""

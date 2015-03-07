@@ -1,0 +1,91 @@
+#!/bin/csh -f
+#
+# errone {plm | ppm} {2d | 3d} testname wave prevres curres
+#
+# Compute the error in the computation for one wave number and a singe pair of
+# resolutions
+#
+
+# Get the predictor step to use, plm or ppm, and the dimension, 2d or 3d
+# and the test to use
+set pred=${1}
+set dim=${2}
+set testname=${3}
+
+# Get the wave # of the plane wave
+set wave="${4}"
+
+# Get the previous and current resolutions for the computation
+set prevres=${5}
+set curres=${6}
+
+# Make sure there is a "results" directory
+if (! -e results) then
+  mkdir results
+endif
+
+# Generate the basename for all the files
+set fbwave=`echo "${wave}" | sed -e 's/ /./g'`
+set filebase=results/trunc.${pred}.${testname}.${fbwave}
+
+# Generate the basename for the current resolution
+set fbcurres=`echo ${curres} | awk '{printf("%04d",$1);}'`
+set filebasecur=${filebase}.${fbcurres}.1
+
+# Generate the basename for the previous resolution
+set fbprevres=`echo ${prevres} | awk '{printf("%04d",$1);}'`
+set filebaseprev=${filebase}.${fbprevres}.2
+
+# The names for the uncompressed data files
+set tmp0file=results/cur0$$.hdf5
+set tmp1file=results/cur1$$.hdf5
+
+# Generate the filename for the difference summary output
+set curfilebasediff=${filebase}.${fbcurres}.1.${dim}.diff
+
+# The name of the difference file
+set curdifffile=${curfilebasediff}.hdf5
+
+# Uncompress the data files for the current resolution
+zcat ${filebasecur}.0000.${dim}.hdf5.gz  > ${tmp0file}
+zcat ${filebasecur}.0001.${dim}.hdf5.gz  > ${tmp1file}
+
+echo -n "Cur..."
+
+# Compute the difference between the final and initial timestep - this is an
+# estimate of the time derivative (multiplied by the timestep)
+diffem ${tmp0file} ${tmp1file} ${curdifffile} ${dim} same > ${curfilebasediff}
+
+# Generate the filename for the difference summary output
+set prevfilebasediff=${filebase}.${fbprevres}.2.${dim}.diff
+
+# The name of the difference file
+set prevdifffile=${prevfilebasediff}.hdf5
+
+# Uncompress the data files for the previous resolution
+zcat ${filebaseprev}.0000.${dim}.hdf5.gz  > ${tmp0file}
+zcat ${filebaseprev}.0001.${dim}.hdf5.gz  > ${tmp1file}
+
+echo -n "Prev..."
+
+# Compute the difference between the final and initial timestep - this is an
+# estimate of the time derivative (multiplied by the timestep)
+diffem ${tmp0file} ${tmp1file} ${prevdifffile} ${dim} same > ${prevfilebasediff}
+
+# Remove the temporary HDF5 files as they are no longer needed
+/bin/rm -f ${tmp0file} ${tmp1file}
+
+# Generate the filename for the error summary output
+set filebaseerr=${filebase}.${fbprevres}.${fbcurres}.${dim}.err
+
+# The name of the truncation error (multiplied by the timestep) file
+set errfile=${filebaseerr}.hdf5
+
+echo -n "Err..."
+
+# Compute the error (difference) between the two data files and save the
+# results
+diffem ${curdifffile} ${prevdifffile} ${errfile} ${dim} > ${filebaseerr}
+
+# Compress all the difference/error files
+gzip -f ${curdifffile} ${prevdifffile} ${errfile}

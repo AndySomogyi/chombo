@@ -1,0 +1,30 @@
+#
+# Template for error computations.  EXACTROOT, COMPUTEDROOT, and DIFFFILE are
+# all replaced by specific values to produce an "inputs" file for the
+# "ChomboCompare/compare" program.
+#
+
+# For this case, the data files will always be different sizes
+compare.sameSize = SAMESIZE
+
+# Higher resolution file
+compare.exactRoot = EXACTROOT
+
+# Lower resolution file
+compare.computedRoot = COMPUTEDROOT
+
+# Where the difference is stored
+compare.errorRoot = DIFFFILE
+
+# Not doing time dependent comparisons
+compare.isTimeDep = 0
+compare.numCrseStart = 0
+compare.crseStep = 1
+compare.numCrseFinish = 40
+compare.mult = 1
+
+# Output the error
+compare.doPlots = 1
+
+# Since no variables are mentioned, via "compare.error_var", the intersection
+# of the variables in "exactRoot" and "computedRoot" is used

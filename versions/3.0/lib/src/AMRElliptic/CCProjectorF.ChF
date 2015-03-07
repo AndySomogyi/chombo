@@ -1,0 +1,197 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+      subroutine ccpextraptodomface(
+     &     chf_fra1[facevel],
+     &     chf_const_int[facedir],
+     &     chf_const_int[ishift],
+     &     chf_box[facebox])
+
+      integer chf_ddecl[i;j;k]
+      integer chf_ddecl[ioff;joff;koff]
+
+      chf_dterm[
+      ioff = ishift*chf_id(0,facedir);
+      joff = ishift*chf_id(1,facedir);
+      koff = ishift*chf_id(2,facedir)]
+
+      chf_multido[facebox;i;j;k]
+
+      facevel(chf_ix[i;j;k]) =
+     &     (two*facevel(chf_ix[i+  ioff;j+  joff;k+  koff])
+     &     -    facevel(chf_ix[i+2*ioff;j+2*joff;k+2*koff]))
+
+      chf_enddo
+
+      return
+      end
+
+      subroutine ccpavecelltoface(
+     &     chf_fra1[facevel],
+     &     chf_const_fra1[cellvel],
+     &     chf_const_int[facedir],
+     &     chf_box[facebox])
+
+      integer chf_ddecl[i;j;k]
+      integer chf_ddecl[ioff;joff;koff]
+
+      chf_dterm[
+      ioff = chf_id(0,facedir);
+      joff = chf_id(1,facedir);
+      koff = chf_id(2,facedir)]
+
+      chf_multido[facebox;i;j;k]
+
+      facevel(chf_ix[i;j;k]) =
+     &     ( cellvel(chf_ix[i     ;j     ;k     ])
+     &     + cellvel(chf_ix[i-ioff;j-joff;k-koff])
+     &     )*half
+
+      chf_enddo
+
+      return
+      end
+
+      subroutine ccpavecelltofaceedge4th(
+     &     chf_fra1[facevel],
+     &     chf_const_fra1[cellvel],
+     &     chf_const_int[facedir],
+     &     chf_const_int[hilo],
+     &     chf_box[facebox])
+
+      integer chf_ddecl[i;j;k]
+      integer chf_ddecl[ioff0;joff0;koff0]
+      integer chf_ddecl[ioff1;joff1;koff1]
+      integer chf_ddecl[ioff2;joff2;koff2]
+      integer chf_ddecl[ioff3;joff3;koff3]
+
+      real sixteenth,fift
+
+      sixteenth = one/(four*four)
+      fift = three*five
+
+      if(hilo.eq.-1) then
+      chf_dterm[
+      ioff0 = -chf_id(0,facedir);
+      joff0 = -chf_id(1,facedir);
+      koff0 = -chf_id(2,facedir)]
+
+      chf_dterm[
+      ioff1 = 0;
+      joff1 = 0;
+      koff1 = 0]
+
+      chf_dterm[
+      ioff2 = chf_id(0,facedir);
+      joff2 = chf_id(1,facedir);
+      koff2 = chf_id(2,facedir)]
+
+      chf_dterm[
+      ioff3 = 2*chf_id(0,facedir);
+      joff3 = 2*chf_id(1,facedir);
+      koff3 = 2*chf_id(2,facedir)]
+
+      else
+      chf_dterm[
+      ioff0 = 0;
+      joff0 = 0;
+      koff0 = 0]
+
+      chf_dterm[
+      ioff1 = -chf_id(0,facedir);
+      joff1 = -chf_id(1,facedir);
+      koff1 = -chf_id(2,facedir)]
+
+      chf_dterm[
+      ioff2 = -2*chf_id(0,facedir);
+      joff2 = -2*chf_id(1,facedir);
+      koff2 = -2*chf_id(2,facedir)]
+
+      chf_dterm[
+      ioff3 = -3*chf_id(0,facedir);
+      joff3 = -3*chf_id(1,facedir);
+      koff3 = -3*chf_id(2,facedir)]
+
+      endif
+
+      chf_multido[facebox;i;j;k]
+
+      facevel(chf_ix[i;j;k]) = (
+     &     five*cellvel(chf_ix[i+ioff0;j+joff0;k+koff0]) +
+     &     fift*cellvel(chf_ix[i+ioff1;j+joff1;k+koff1]) -
+     &     five*cellvel(chf_ix[i+ioff2;j+joff2;k+koff2]) +
+     &          cellvel(chf_ix[i+ioff3;j+joff3;k+koff3])
+     &     )*sixteenth
+
+      chf_enddo
+
+      return
+      end
+
+
+      subroutine ccpavecelltoface4th(
+     &     chf_fra1[facevel],
+     &     chf_const_fra1[cellvel],
+     &     chf_const_int[facedir],
+     &     chf_box[facebox])
+
+      integer chf_ddecl[i;j;k]
+      integer chf_ddecl[ioff;joff;koff]
+      integer chf_ddecl[ioff2;joff2;koff2]
+      real sixteenth
+
+      sixteenth = one/(four*four)
+
+      chf_dterm[
+      ioff = chf_id(0,facedir);
+      joff = chf_id(1,facedir);
+      koff = chf_id(2,facedir)]
+
+      chf_dterm[
+      ioff2 = 2*chf_id(0,facedir);
+      joff2 = 2*chf_id(1,facedir);
+      koff2 = 2*chf_id(2,facedir)]
+
+      chf_multido[facebox;i;j;k]
+
+      facevel(chf_ix[i;j;k]) =
+     &     ((cellvel(chf_ix[i     ;j     ;k     ])
+     &     + cellvel(chf_ix[i-ioff;j-joff;k-koff])
+     &     )*nine -
+     &     ( cellvel(chf_ix[i+ioff ;j+joff ;k+koff ])
+     &     + cellvel(chf_ix[i-ioff2;j-joff2;k-koff2])
+     &     ))*sixteenth
+
+      chf_enddo
+
+      return
+      end
+
+      subroutine ccpavefacetocell(
+     &     chf_fra1[cellgrad],
+     &     chf_const_fra1[facegrad],
+     &     chf_const_int[facedir],
+     &     chf_box[cellbox])
+
+      integer chf_ddecl[i; j; k]
+      integer chf_ddecl[ioff; joff; koff]
+
+      chf_dterm[
+      ioff = chf_id(0,facedir);
+      joff = chf_id(1,facedir);
+      koff = chf_id(2,facedir)]
+
+      chf_multido[cellbox;i;j;k]
+
+      cellgrad(chf_ix[i;j;k]) =
+     &     (facegrad(chf_ix[i+ioff;j+joff;k+koff])
+     &     +facegrad(chf_ix[i     ;j     ;k     ]))*half
+
+      chf_enddo
+
+      return
+      end

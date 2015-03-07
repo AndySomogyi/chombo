@@ -1,0 +1,55 @@
+#max steps at finest level
+max_step  	      = 0
+viscosity             = 0.001
+do_slip_walls         = 1	
+poisselle_inflow = false
+#no max time here.  controlled by steps and time step
+use_limiting          = 0
+order_ebbc = 1
+
+domain_length         = 1.0
+max_level	      = 0
+fixed_dt              = -1.0
+
+#this is the coarsest box of the coarsest level
+fixed_dt              = 8e-2
+n_cell                = 8 8 8
+
+#fixed_dt              = 4.0e-2
+#n_cell                = 16 16 16
+
+#fixed_dt              = 2.0e-2
+#n_cell                =  32 32 32
+
+#fixed_dt              = 1.0e-2
+#n_cell                = 64 64 64 
+
+ref_ratio	      = 2 2 2 2
+num_filtrations       = 0
+num_init_iterations   = 1
+
+checkpoint_interval   = -1
+plot_interval	      = -1
+max_grid_size	      = 64
+fill_ratio	      = 0.7
+block_factor	      = 8
+regrid_interval	      = 2
+##this has to be bigger than one!
+max_dt_grow	      = 1.1  
+cfl		      = 0.5
+init_cfl	      = 0.5
+refine_threshold      = 0.1
+verbosity	      = 1
+nesting_radius	      = 2
+tag_buffer	      = 2
+
+do_error_output  = 1
+test_verbosity = 3
+
+###no geometry --this test forces a tube with poisselle flow
+max_vel	    = 1.0
+cylinder_axis   = 1.0 1.0 1.0 
+cylinder_radius = 0.125
+cylinder_center_pt = 0.0 0.0 0.0
+cylinder_inside=true
+

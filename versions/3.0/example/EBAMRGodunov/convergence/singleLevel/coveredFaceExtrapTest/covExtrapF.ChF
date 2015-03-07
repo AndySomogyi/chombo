@@ -1,0 +1,105 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+cccccccccccccccccccc
+      subroutine polynomialinit(
+     &     chf_fra[ucent],
+     &     chf_fra[uminu],
+     &     chf_fra[uplus],
+     &     chf_const_realvect[dx],
+     &     chf_const_int[facedir],
+     &     chf_const_int[nvar],
+     &     chf_box[box])
+
+      integer chf_ddecl[i;j;k], ivar
+      real_t valplus
+      real_t valminu
+      real_t valcent
+      integer iv(0:CH_SPACEDIM-1)
+
+      chf_multido[box;i;j;k]
+
+      chf_dterm[
+      iv(0) = i;
+      iv(1) = j;
+      iv(2) = k]
+
+
+      do ivar = 0, nvar-1
+
+         call pointpolyexact(valcent, valminu, valplus, iv, dx, facedir, ivar)
+
+         ucent(chf_ix[i;j;k],ivar) = valcent
+         uminu(chf_ix[i;j;k],ivar) = valminu
+         uplus(chf_ix[i;j;k],ivar) = valplus
+      enddo
+
+      chf_enddo
+
+      return
+      end
+
+ccccccccccccccccccccc
+
+      subroutine pointpolyexact(
+     &     chf_real[valcent],
+     &     chf_real[valminu],
+     &     chf_real[valplus],
+     &     chf_const_intvect[iv],
+     &     chf_const_realvect[dx],
+     &     chf_const_int[facedir],
+     &     chf_const_int[ivar])
+
+      integer idir
+      real_t xcent(0:CH_SPACEDIM-1)
+      real_t xminu(0:CH_SPACEDIM-1)
+      real_t xplus(0:CH_SPACEDIM-1)
+
+      do idir = 0, CH_SPACEDIM-1
+
+         xcent(idir) = (iv(idir) + half)*dx(idir)
+
+         if(idir .eq.facedir) then
+            xminu(idir) = (iv(idir)       )*dx(idir)
+            xplus(idir) = (iv(idir) + one )*dx(idir)
+         else
+            xminu(idir) = xcent(idir)
+            xplus(idir) = xcent(idir)
+         endif
+
+      enddo
+
+      call polyval(valcent, xcent, ivar)
+      call polyval(valminu, xminu, ivar)
+      call polyval(valplus, xplus, ivar)
+
+      return
+      end
+
+      subroutine polyval(
+     &     CHF_REAL[value],
+     &     CHF_CONST_REALVECT[xval],
+     &     CHF_CONST_INT[ivar])
+
+      real_t chf_dterm[[x;,y;,z]
+
+      chf_dterm[
+      x = xval(0);
+      y = xval(1);
+      z = xval(2)]
+
+
+c      value = x*y
+c      value = y*y
+c      value = x*x
+c      value = z*z
+c      value = chf_dterm[x; +y; +z]
+      value = chf_dterm[x*x; +y*y; +z*z]
+c      value = chf_dterm[x*x*x; +y*y*y; +z*z*z]
+      return
+      end

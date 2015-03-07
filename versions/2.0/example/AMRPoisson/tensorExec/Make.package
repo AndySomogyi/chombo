@@ -1,0 +1,4 @@
+CXX_SOURCES += tensorSolve.cpp localFuncs.cpp computeSum.cpp computeNorm.cpp
+FORT_SOURCES += TensorProbF.ChF
+C_SOURCES = 	
+F_SOURCES = 	

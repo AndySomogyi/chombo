@@ -1,0 +1,4 @@
+This directory contains many convergence tests that were used in the development of this application.  They
+include gobs of very ugly code used to debug very specific issues.    These directories are not for the faint
+of heart.   If you wish to emulate more reasonable convergence tests, either look in the EBAMRINS or EBAMRPoisson
+directories or look in EBAMRGodunov/convergence/amr.

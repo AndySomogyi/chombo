@@ -1,0 +1,15 @@
+The main program in this directory computes the laplacian of a
+Gaussian function phi and then computes the laplacian of phi on the
+same grids refined by 2.
+
+Output is written to the files:
+- opOut2.hdf5 or opOut3.hdf5, containing phi, the computed laplacian of phi,
+  the exact laplacian of phi, the error in the computed laplacian, and
+  the difference between the laplacian on these grids and the projection
+  of the laplacian on refined grids.
+- opOut2fine.hdf5 or opOut3fine.hdf5, containing phi on the refined grids,
+  the computed and exact laplacians of phi on the refined grids, and
+  the error in the computed laplacian on the refined grids.
+
+Example input file:  inputs.2level
+This is the same as ../inputs/read1op4quad32 but with verbosity turned off.

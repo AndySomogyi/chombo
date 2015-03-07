@@ -1,0 +1,226 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+#include "CONSTANTS.H"
+
+C     --------------------------------------------------------------
+C     subroutine GETRHSTENSOR
+C     initialize rhs 
+C     
+C     INPUTS (=>),  OUTPUTS(<=):
+C     rhs      <=    right-hand side
+C     box       =>   geometric extent of initializtion
+C     rno       =>   radius input to solution
+C     rhono     =>   coefficient of rhs
+C     iprob     =>   form of rhs to use
+C     dx        =>   mesh spacing
+C     
+C     dtgraves nov 16, 1999
+C     --------------------------------------------------------------
+      subroutine GETRHSTENSOR(
+     &     CHF_FRA[rhs],
+     $     CHF_BOX[box],
+     $     CHF_BOX[domain],
+     $     CHF_CONST_REAL[dx],
+     $     CHF_CONST_REAL[rhono],
+     $     CHF_CONST_REAL[rno],
+     $     CHF_CONST_INT[iprob])
+
+      integer CHF_DDECL[i;j;k]
+      REAL_T CHF_DDECL[x;y;z]
+      REAL_T CHF_DDECL[xup;yup;zup]
+      REAL_T xloc, xlo,xhi
+      integer nv
+      REAL_T rhsexact, signComp
+      REAL_T A, B,C, gradDiv
+      REAL_T corr, oneOnVol
+
+      A = one
+      B = -one
+      C = zero
+
+      oneOnVol = one/(CHF_DTERM[dx;*dx;*dx])
+
+      xlo = CHF_LBOUND[domain; 0]*dx
+      xhi =(CHF_UBOUND[domain; 0]+1)*dx
+c      xloc = half*(xlo + xhi)
+      xloc = zero
+c   role of signComp is to switch signs on different components of RHS
+      signComp = -one
+
+      if (iprob.eq.1) then
+c  corr is the correction required to make this a cell-average
+         corr = A*A*dx*dx/six
+      
+         do nv = 0, CHF_NCOMP[rhs] - 1
+            signComp = -signComp
+            
+            if (CH_SPACEDIM.eq.2) then
+               
+               CHF_MULTIDO[box; i; j; k]
+               
+               CHF_DTERM[
+               x = dx*(i+0.5) - xloc;
+               y = dx*(j+0.5) - xloc;
+               z = dx*(k+0.5) - xloc]
+               
+c     ::: for now, use quadratic problem to which we know the answer
+c     ::: U = (u,v) = (phi,phi) 
+c     ::: phi(x,y) = (Ax^2 + Bx + C)*(Ay^2 + By + C)
+c     ::: rhs = Laplacian(U) + Grad(Div(U))
+               
+c     ::: first compute laplacian term
+               rhsexact = two*A*(A*(x*x + y*y) + B*(x+y) +two*C)
+               
+c     ::: now compute in grad(div) term
+               if (nv.eq.0) then
+                  gradDiv = two*A*(A*y*y + B*y +C) 
+     &                 +(two*A*y +B)*(two*A*x + B)
+               else if (nv.eq.1) then
+                  gradDiv = two*A*(A*x*x + B*x +C)
+     &                 +(two*A*x + B)*(two*A*y +B)
+               else
+c     ::: bad component number
+                  call MAYDAYERROR()
+               endif
+              
+               gradDiv = gradDiv + corr
+ 
+c     ::: now add in gradDiv term
+               rhs(CHF_IX[i;j;k],nv) = rhsexact + gradDiv
+c               rhs(CHF_IX[i;j;k],nv) = rhsexact
+               
+               CHF_ENDDO
+               
+            else 
+c 3d case not defined yet
+               call MAYDAYERROR()
+               
+            endif
+         enddo
+      else 
+c     test for periodic case
+         CHF_MULTIDO[box; i; j; k]
+         
+         
+         CHF_DTERM[
+         x = two*Pi*dx*(i);
+         y = two*Pi*dx*(j);
+         z = two*Pi*dx*(k);]
+
+         CHF_DTERM[
+         xup = two*Pi*dx*(i+one);
+         yup = two*Pi*dx*(j+one);
+         zup = two*Pi*dx*(k+one);]
+
+         
+c         rhs(CHF_IX[i;j;k],0) = -eight*Pi*Pi*sin(x)
+c         rhs(CHF_IX[i;j;k],1) = -eight*Pi*Pi*sin(y)
+
+c         rhs(CHF_IX[i;j;k],0) = -twelve*Pi*Pi*sin(x)*sin(y)
+c     &                            +four*Pi*Pi*cos(x)*cos(y)
+c         rhs(CHF_IX[i;j;k],1) = -twelve*Pi*Pi*sin(x)*sin(y)
+c     &                            +four*Pi*Pi*cos(x)*cos(y)
+
+
+         rhs(CHF_IX[i;j;k],0) = -three*(cos(xup)-cos(x))*(cos(yup)-cos(y))
+     &                            +(sin(xup)-sin(x))*(sin(yup)-sin(y))
+         rhs(CHF_IX[i;j;k],1) = -three*(cos(xup)-cos(x))*(cos(yup)-cos(y))
+     &                            +(sin(xup)-sin(x))*(sin(yup)-sin(y))
+
+         rhs(CHF_IX[i;j;k],0) =  oneOnVol*rhs(CHF_IX[i;j;k],0) 
+         rhs(CHF_IX[i;j;k],1) =  oneOnVol*rhs(CHF_IX[i;j;k],1) 
+         
+         CHF_ENDDO
+      endif
+      
+      return
+      end
+
+
+C     --------------------------------------------------------------
+C     subroutine EXACT
+C     compute exact solution (if it exists)
+C     
+C     INPUTS (=>),  OUTPUTS(<=):
+C     phi      <=    exact solution
+C     box       =>   geometric extent of initializtion
+C     dx        =>   mesh spacing
+C     
+C     dfmartin April 16,2002
+C     --------------------------------------------------------------
+      subroutine EXACT(
+     &     CHF_FRA[phi],
+     $     CHF_BOX[box],
+     $     CHF_CONST_REAL[dx],
+     $     CHF_INT[iprob])
+
+      integer CHF_DDECL[i;j;k]
+      REAL_T CHF_DDECL[x;y;z]
+      REAL_T A,B,C, phiExact
+      integer nv
+
+      A = one
+      B = -one
+      C = zero
+
+      if (iprob.eq.1) then
+         do nv=0, CHF_NCOMP[phi] - 1
+            if (CH_SPACEDIM.eq.2) then
+               CHF_MULTIDO[box;i;j;k]
+               
+               
+               CHF_DTERM[
+               x = dx*(i+0.5);
+               y = dx*(j+0.5);
+               z = dx*(k+0.5)]
+               
+               
+c     ::: for now, use quadratic problem to which we know the answer
+c     ::: U = (u,v) = (phi,phi) 
+c     ::: phi(x,y) = (Ax^2 + Bx + C)*(Ay^2 + By + C)
+               
+               phiExact = A*x*x + B*x + C
+               phiExact = phiExact*(A*y*y + B*y + C)
+               
+               phi(CHF_IX[i;j;k],nv) = phiExact
+               
+               
+               CHF_ENDDO
+            else
+c ::: not defined for 3d yet
+               call MAYDAY_ERROR()
+            endif
+         enddo
+         
+      else if (iprob.eq.2) then
+         CHF_MULTIDO[box;i;j;k]
+         
+         CHF_DTERM[
+         x = two*Pi*dx*(i+0.5);
+         y = two*Pi*dx*(j+0.5);
+         z = two*Pi*dx*(k+0.5)]
+         
+c         CHF_DTERM[
+c         phi(CHF_IX[i;j;k],0) = sin(x);
+c         phi(CHF_IX[i;j;k],1) = sin(y);
+c         phi(CHF_IX[i;j;k],2) = sin(z)]
+
+         CHF_DTERM[
+         phi(CHF_IX[i;j;k],0) = sin(x)*sin(y);
+         phi(CHF_IX[i;j;k],1) = sin(x)*sin(y);
+         phi(CHF_IX[i;j;k],2) = sin(z)]
+        
+         CHF_ENDDO
+         
+      else
+c     ::: bad iprob
+         call MAYDAY_ERROR()
+      endif
+      
+      
+      return
+      end
+      

@@ -1,0 +1,38 @@
+# Set which problem to solve
+wave.problem = explosion
+
+wave.verbosity = 1
+
+wave.max_step = 20
+wave.max_time = .4
+
+wave.domain_length = 1.0
+wave.num_cells = 128 128 128
+wave.is_periodic = 1 1 1
+wave.max_level = 1
+wave.ref_ratio = 4 4 4 2 2
+
+wave.regrid_interval = 2 2 2 2 2 2
+wave.tag_buffer_size = 1
+
+wave.refine_thresh = 10.
+
+wave.block_factor = 8
+wave.max_grid_size = 64
+# wave.max_grid_size = 128
+wave.fill_ratio = 0.75
+# wave.fill_ratio = 0.10
+
+wave.checkpoint_interval = -1
+wave.plot_interval = 20
+# wave.restart_file = chk20.2d.hdf5
+# wave.plot_prefix  = /home/data1/dmartin/plot'
+wave.plot_prefix  = plot
+wave.chk_prefix = check
+
+wave.cfl = 0.75
+wave.initial_cfl = 0.75
+
+wave.max_dt_growth = 1.1
+wave.dt_tolerance_factor = 1.1
+wave.radius = .025

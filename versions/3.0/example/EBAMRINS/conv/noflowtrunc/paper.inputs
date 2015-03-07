@@ -1,0 +1,55 @@
+#max step forced to be 1
+#max time set = 1000.
+
+domain_length         = 1.0
+max_level	      = 0
+viscosity             = 0.01
+do_stokes_flow = false
+
+#this is the coarsest box of the coarsest level
+#n_cell                =  8 8 8
+n_cell                = 16 16 16
+#n_cell                =  32 32 32
+#n_cell                = 64 64 64 
+#n_cell                = 128 128 128
+#n_cell                = 256 256 256 
+ref_ratio	      = 2 2 2 2
+use_limiting          = 0
+num_filter_iterations = 0
+checkpoint_interval   = -1
+plot_interval	      = -1
+max_grid_size	      = 8
+fill_ratio	      = 0.7
+block_factor	      = 8
+regrid_interval	      = 2
+##this has to be bigger than one!
+max_dt_grow	      = 1.1  
+cfl		      = 0.5
+init_cfl	      = 0.5
+refine_threshold      = 0.1
+verbosity	      = 3
+nesting_radius	      = 2
+tag_buffer	      = 2
+vortex_center	      = 0.15 0.5 0.25
+core_radius	      = 0.1
+vortex_strength       = 1.0
+
+do_error_output  = 1
+test_verbosity = 1
+###geometry flag
+## 0 is all regular
+#which_geom = 0
+
+### 5 is a sphere
+which_geom = 5
+fluid_inside = true
+##sphere stuff
+sphere_radius = 0.49
+#sphere_center = 0.36 0.5 0.5
+sphere_center = 0.5 0.5 0.5
+
+solver_tolerance = 1.0e-11
+solver_hang      = -1.0
+solver_num_smooth = 4
+solver_iter_max   = 40
+

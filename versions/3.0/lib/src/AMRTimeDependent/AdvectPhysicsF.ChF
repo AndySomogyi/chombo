@@ -1,0 +1,320 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+c     added by dmartin, 11 Oct 2007
+#define SMALLNUMBER 1.0d-9
+
+      subroutine avefacescaltofacevect(
+     &     chf_fra[facevect],
+     &     chf_const_fra1[facescal],
+     &     chf_const_int[facedir],
+     &     chf_const_int[vectdir],
+     &     chf_box[dcalcface])
+
+      integer chf_ddecl[i; j; k]
+      integer iiv, jjv, kkv
+      integer iif, jjf, kkf
+#if CH_SPACEDIM==3
+      integer iit, jjt, kkt, tangdir
+#endif
+
+      if(facedir .eq. vectdir) then
+
+         chf_multido[dcalcface;i;j;k]
+
+         facevect(chf_ix[i;j;k], vectDir) = facescal(chf_ix[i;j;k])
+
+         chf_enddo
+
+      else
+
+         iiv = chf_id(0,vectdir)
+         jjv = chf_id(1,vectdir)
+         kkv = chf_id(2,vectdir)
+
+         iif = chf_id(0,facedir)
+         jjf = chf_id(1,facedir)
+         kkf = chf_id(2,facedir)
+
+#if CH_SPACEDIM==3
+         tangdir = 2 - vectdir - facedir
+         iit = chf_id(0,tangdir)
+         jjt = chf_id(1,tangdir)
+         kkt = chf_id(2,tangdir)
+#endif
+
+         chf_multido[dcalcface;i;j;k]
+
+#if CH_SPACEDIM == 2
+
+         facevect(chf_ix[i;j;k], vectDir) = (
+     &        facescal(chf_ix[i        ;j        ;k        ]) +
+     &        facescal(chf_ix[i+iiv    ;j+jjv    ;k+kkv    ]) +
+     &        facescal(chf_ix[i-iif    ;j-jjf    ;k-kkf    ]) +
+     &        facescal(chf_ix[i-iif+iiv;j-jjf+jjv;k-kkf+kkv])
+     $        )/four
+
+#elif CH_SPACEDIM==3
+
+         facevect(chf_ix[i;j;k], vectDir) = (
+     &        facescal(chf_ix[i            ;j            ;k            ]) +
+     &        facescal(chf_ix[i-iif        ;j-jjf        ;k-kkf        ]) +
+     &        facescal(chf_ix[i    +iit    ;j    +jjt    ;k    +kkt    ]) +
+     &        facescal(chf_ix[i        +iiv;j        +jjv;k        +kkv]) +
+     &        facescal(chf_ix[i-iif+iit    ;j-jjf+jjt    ;k-kkf+kkt    ]) +
+     &        facescal(chf_ix[i-iif    +iiv;j-jjf    +jjv;k-kkf    +kkv]) +
+     &        facescal(chf_ix[i    +iit+iiv;j    +jjt+jjv;k    +kkt+kkv]) +
+     &        facescal(chf_ix[i-iif+iit+iiv;j-jjf+jjt+jjv;k-kkf+kkt+kkv]) 
+     $        )/eight
+
+#else
+         call bogus_spacedim_error()
+#endif
+
+         chf_enddo
+      endif
+      return
+      end
+
+      subroutine avescaltoface(
+     &     chf_fra1[facescal],
+     &     chf_const_fra1[cellscal],
+     &     chf_const_int[idir],
+     &     chf_box[dcalcface])
+
+      integer chf_ddecl[i; j; k]
+      integer ii,jj,kk
+
+      ii = chf_id(0,idir)
+      jj = chf_id(1,idir)
+      kk = chf_id(2,idir)
+
+      chf_multido[dcalcface;i;j;k]
+
+      facescal(chf_ix[i;j;k]) =  half*(
+     &     cellscal(chf_ix[i   ;j   ;k   ]) +
+     &     cellscal(chf_ix[i-ii;j-jj;k-kk]))
+
+      chf_enddo
+
+      return
+      end
+
+      subroutine avecelltoface(
+     &     chf_fra1[facevel],
+     &     chf_const_fra[cellvel],
+     &     chf_const_int[idir],
+     &     chf_box[dcalcface])
+
+      integer chf_ddecl[i; j; k]
+      integer ii,jj,kk
+
+      ii = chf_id(0,idir)
+      jj = chf_id(1,idir)
+      kk = chf_id(2,idir)
+
+      chf_multido[dcalcface;i;j;k]
+
+      facevel(chf_ix[i;j;k]) =  half*(
+     &     cellvel(chf_ix[i   ;j   ;k   ], idir) +
+     &     cellvel(chf_ix[i-ii;j-jj;k-kk], idir))
+
+      chf_enddo
+
+      return
+      end
+
+      subroutine avefacetocell(
+     &     chf_fra[cellvel],
+     &     chf_const_fra1[facevel],
+     &     chf_const_int[idir],
+     &     chf_box[dcalccell])
+
+      integer chf_ddecl[i; j; k]
+      integer ii,jj,kk
+
+      ii = chf_id(0,idir)
+      jj = chf_id(1,idir)
+      kk = chf_id(2,idir)
+
+      chf_multido[dcalccell;i;j;k]
+
+      cellvel(chf_ix[i;j;k],idir) =  half*(
+     &     facevel(chf_ix[i   ;j   ;k   ]) +
+     &     facevel(chf_ix[i+ii;j+jj;k+kk]))
+
+      chf_enddo
+
+      return
+      end
+
+
+
+        subroutine MAGNITUDEF(
+     &    CHF_FRA1[magdata],
+     &    CHF_CONST_FRA[data],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+        integer iv
+        real_t cur,sum
+
+        CHF_MULTIDO[box;i;j;k]
+          sum = zero
+
+          do iv = 0,CHF_NCOMP[data]-1
+            cur = data(CHF_IX[i;j;k],iv)
+            sum = sum + cur*cur
+          enddo
+
+          magdata(CHF_IX[i;j;k]) = sqrt(sum)
+        CHF_ENDDO
+
+        return
+        end
+
+
+        subroutine GETRELGRADF(
+     &    CHF_FRA1[du],
+     &    CHF_CONST_FRA1[u],
+     &    CHF_CONST_INT[idir],
+     &    CHF_BOX[loBox],
+     &    CHF_CONST_INT[hasLo],
+     &    CHF_BOX[hiBox],
+     &    CHF_CONST_INT[hasHi],
+     &    CHF_BOX[centerBox])
+
+        integer CHF_DDECL[i   ;j   ;k   ]
+        integer CHF_DDECL[ioff;joff;koff]
+        real_t diff,aver
+
+        CHF_DTERM[
+        ioff = CHF_ID(0,idir);
+        joff = CHF_ID(1,idir);
+        koff = CHF_ID(2,idir)]
+
+c       Perform first difference calculation in the interior.
+
+        CHF_MULTIDO[centerBox;i;j;k]
+          diff = half*(u(CHF_IX[i+ioff;j+joff;k+koff])
+     &                -u(CHF_IX[i-ioff;j-joff;k-koff]))
+          aver = half*(u(CHF_IX[i+ioff;j+joff;k+koff])
+     &                +u(CHF_IX[i-ioff;j-joff;k-koff]))
+          du(CHF_IX[i;j;k]) = diff / aver
+        CHF_ENDDO
+
+c       Perform calculation on the cells adjacent to the domain boundary in
+c       current direction, if required.
+
+        if (hasLo .eq. 1) then
+          CHF_MULTIDO[loBox;i;j;k]
+            diff = (u(CHF_IX[i+ioff;j+joff;k+koff])
+     &             -u(CHF_IX[i     ;j     ;k     ]))
+            aver = half*(u(CHF_IX[i+ioff;j+joff;k+koff])
+     &                  +u(CHF_IX[i     ;j     ;k     ]))
+            du(CHF_IX[i;j;k]) = diff / aver
+          CHF_ENDDO
+        endif
+
+        if (hasHi .eq. 1) then
+          CHF_MULTIDO[hiBox;i;j;k]
+            diff = (u(CHF_IX[i     ;j     ;k     ])
+     &             -u(CHF_IX[i-ioff;j-joff;k-koff]))
+            aver = half*(u(CHF_IX[i     ;j     ;k     ])
+     &                  +u(CHF_IX[i-ioff;j-joff;k-koff]))
+            du(CHF_IX[i;j;k]) = diff / aver
+          CHF_ENDDO
+        endif
+
+        return
+        end
+
+
+        subroutine RIEMANNF(
+     &    CHF_FRA[Wgdnv],
+     &    CHF_CONST_FRA[WLeft],
+     &    CHF_CONST_FRA[WRight],
+     &    CHF_CONST_FRA1[advVel],
+     &    CHF_CONST_INT[idir],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i; j; k]
+        integer n
+        real_t sl,sr
+        real_t so
+        real_t ustar
+
+        integer spacedim
+
+        spacedim = CH_SPACEDIM
+
+c       Constant gamma predictor step.
+
+        do n=0, CHF_NCOMP[WLeft]-1
+
+          CHF_MULTIDO[box;i;j;k]
+c     don't need floors in this simple problem
+c           sl = max(smallr,WLeft(CHF_IX[i;j;k],n))
+            sl =  WLeft(CHF_IX[i;j;k],n)
+
+c     don't need floors in this simple problem
+c           sr = max(smallr,WRight(CHF_IX[i;j;k],n) )
+            sr = WRight(CHF_IX[i;j;k],n)
+
+c assumption for this function is that advection velocity is a
+c single-component face-centered FAB containing the normal advection
+c velocity
+            ustar = advVel(CHF_IX[i;j;k])
+
+            if (ustar .gt. zero) then
+              so = sl
+            else
+              so = sr
+            endif
+
+c if ustar is "zero", average left and right states
+c     added by dmartin, 11 Oct 2007
+            if (abs(ustar).lt.SMALLNUMBER) then
+               so = half*(sl+sr)
+            endif
+
+            Wgdnv(CHF_IX[i;j;k],n) = so
+
+c don't need floor for this simple problem
+c           Wgdnv(CHF_IX[i;j;k],n) = max(Wgdnv(CHF_IX[i;j;k],n) ,smallr)
+          CHF_ENDDO
+        end do
+
+        return
+        end
+
+        subroutine QUASILINEARUPDATE(
+     &    CHF_FRA[AdWdx],
+     &    CHF_CONST_FRA[WHalf],
+     &    CHF_CONST_FRA1[cellVel],
+     &    CHF_CONST_REAL[scale],
+     &    CHF_CONST_INT[idir],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+        integer CHF_DDECL[ii;jj;kk]
+        integer n
+
+        CHF_DTERM[
+        ii = CHF_ID(idir,0);
+        jj = CHF_ID(idir,1);
+        kk = CHF_ID(idir,2)]
+
+        do n=0, CHF_NCOMP[AdWdx]-1
+          CHF_MULTIDO[box;i;j;k]
+            AdWdx(CHF_IX[i;j;k],n) = scale * cellVel(CHF_IX[i;j;k]) *
+     &        (WHalf(CHF_IX[i+ii;j+jj;k+kk],n) - WHalf(CHF_IX[i;j;k],n))
+          CHF_ENDDO
+        end do
+
+        return
+        end

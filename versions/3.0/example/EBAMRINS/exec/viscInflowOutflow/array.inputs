@@ -1,0 +1,229 @@
+#restart_file          = check1100.2d.hdf5
+#max_step  	      = 1
+max_step  	      = 10
+#max_step  	      = 0
+max_time              = 10000.0
+
+mg_relax_type  = 2
+mg_num_smooths = 4
+#bottom solver:  0=BiCGStab, 1=EBSimpleSmoother
+mg_bottom_solver = 1
+mg_num_precond = 4
+mg_num_cycles  = 1
+mg_hang        = 1.0e-1
+mg_tolerance   = 1.0e-12
+mg_norm_thresh = 1.0e-15
+mg_iter_max    = 100
+
+do_4thorder_vel_avg = false
+do_macp_avg = false
+tag_on_scalar         = 0
+
+#euler
+#viscosity             = 0.01
+viscosity             = 0.00125
+#refine_threshold      = 5.0
+
+#viscosity             = 0.0005
+refine_threshold      = 7.0
+
+do_slip_walls         = 0
+
+use_limiting          = 1
+#domain_length         = 4.0
+domain_length = 1.0 1.0 1.0
+do_regrid_smoothing = false
+
+max_level	      = 2
+#n_cell                = 32 8 8
+n_cell                = 32 32 32
+#n_cell                = 32 32 32
+#n_cell			= 64 64 64
+#n_cell                =  128 32 32
+#n_cell                = 256 64 64 
+#n_cell                = 512 128 128
+ref_ratio	      = 2 2 2 2
+#ref_ratio	      = 4 4 4 4
+num_filter_iterations  = 1
+num_gphi_iterations    = 1
+num_init_iterations    = 1
+
+
+checkpoint_interval   = 10
+plot_interval	      = 1
+max_grid_size	      = 16
+fill_ratio	      = 0.7
+block_factor	      = 8
+#regrid_interval	      = 2
+regrid_interval	      = 16
+##this has to be bigger than one!
+max_dt_grow	      = 1.1  
+cfl		      = 0.5
+init_cfl	      = 0.5
+verbosity	      = 3
+nesting_radius	      = 2
+#tag_buffer	      = 4
+tag_buffer	      = 8
+flow_dir	      = 0
+spot_center	      = 0.25 0.5 0.25
+spot_radius	      = 0.25
+inflow_vel	      = 1.0
+poisselle_inflow = false
+streak_radius = 0.02
+num_streaks   = 5	
+perturbation_eps      = 0.0
+perturbation_freq     = 2.0
+
+
+###geometry flag
+## 0 is all regular
+#which_geom = 0
+
+## 5 is a sphere
+## 15 is a half sphere
+#which_geom = 5
+##which_geom = 15
+#sphere_radius = 0.0625
+#sphere_center = 0.5 0.5625 0.5
+#cutplane_normal = 1.0 0.0 0.0
+
+#which_geom = 16
+#num_spheres = 2 2 2
+#sphere_radius = 0.05
+#first_sphere_center = 0.25 0.25 0.25 
+#sphere_spacing = .5 .5
+
+which_geom = 6
+num_spheres = 1
+sphere_radius_0 = 0.05
+sphere_center_0 = 0.5 0.5 0.5
+
+#sphere_radius_0 = 0.005
+#sphere_radius_1 = 0.005
+#sphere_radius_2 = 0.005
+#sphere_radius_3 = 0.005
+#sphere_radius_4 = 0.005
+#sphere_radius_5 = 0.005
+#sphere_radius_6 = 0.005
+#sphere_radius_7 = 0.005
+#sphere_radius_8 = 0.005
+#sphere_radius_9 = 0.005
+#sphere_radius_10 = 0.005
+#sphere_radius_11 = 0.005
+#sphere_radius_12 = 0.005
+#sphere_radius_13 = 0.005
+#sphere_radius_14 = 0.005
+#sphere_radius_15 = 0.005
+#sphere_radius_16 = 0.005
+#sphere_radius_17 = 0.005
+#sphere_radius_18 = 0.005
+#sphere_radius_19 = 0.005
+#sphere_radius_20 = 0.005
+#sphere_radius_21 = 0.005
+#sphere_radius_22 = 0.005
+#sphere_radius_23 = 0.005
+#sphere_radius_24 = 0.005
+#sphere_radius_25 = 0.005
+#sphere_radius_26 = 0.005
+#sphere_radius_27 = 0.005
+#sphere_radius_28 = 0.005
+#sphere_radius_29 = 0.005
+#sphere_radius_30 = 0.005
+#sphere_radius_31 = 0.005
+#sphere_radius_32 = 0.005
+#sphere_radius_33 = 0.005
+#sphere_radius_34 = 0.005
+#sphere_radius_35 = 0.005
+#sphere_radius_36 = 0.005
+#sphere_radius_37 = 0.005
+#sphere_radius_38 = 0.005
+#sphere_radius_39 = 0.005
+#sphere_radius_40 = 0.005
+#sphere_radius_41 = 0.005
+#sphere_radius_42 = 0.005
+#sphere_radius_43 = 0.005
+#sphere_radius_44 = 0.005
+#sphere_radius_45 = 0.005
+#sphere_radius_46 = 0.005
+#sphere_radius_47 = 0.005
+#sphere_radius_48 = 0.005
+#sphere_radius_49 = 0.005
+#sphere_radius_50 = 0.005
+#sphere_radius_51 = 0.005
+#sphere_radius_52 = 0.005
+#sphere_radius_53 = 0.005
+#sphere_radius_54 = 0.005
+#sphere_radius_55 = 0.005
+#sphere_radius_56 = 0.005
+#sphere_radius_57 = 0.005
+#sphere_radius_58 = 0.005
+
+#sphere_center_23 = 0.067524 0.00625
+#sphere_center_24 = 0.067524 0.01875
+#sphere_center_25 = 0.067524 0.03125
+#sphere_center_26 = 0.067524 0.04375
+#sphere_center_27 = 0.067524 0.05625
+#sphere_center_28 = 0.067524 0.06875
+#sphere_center_29 = 0.067524 0.08125
+#sphere_center_30 = 0.067524 0.09375
+
+#sphere_center_53 = 0.0783494 0.0
+#sphere_center_31 = 0.0783494 0.0125
+#sphere_center_32 = 0.0783494 0.0250
+#sphere_center_33 = 0.0783494 0.0375
+#sphere_center_34 = 0.0783494 0.05
+#sphere_center_35 = 0.0783494 0.0625
+#sphere_center_36 = 0.0783494 0.075
+#sphere_center_37 = 0.0783494 0.0875
+#sphere_center_54 = 0.0783494 0.1
+
+##sphere_center_0 = 0.045 0.0
+##sphere_center_0 = 0.032 0.0225
+#sphere_center_0 = 0.0225 0.0225
+#sphere_center_1 = 0.045 0.0150
+#sphere_center_2 = 0.045 0.03
+#sphere_center_3 = 0.045 0.045
+
+#sphere_center_4 = 0.032 0.0075
+#sphere_center_5 = 0.032 0.0225
+#sphere_center_6 = 0.032 0.0375
+
+#sphere_center_7 = 0.058 0.0075
+#sphere_center_8 = 0.058 0.0225
+#sphere_center_9 = 0.058  0.0375
+
+#sphere_center_10 = 0.03116 0.0375
+
+#sphere_center_11 = 0.1 0.05
+#sphere_center_12 = 0.1 0.0625
+#sphere_center_13 = 0.1 0.075
+#sphere_center_14 = 0.1 0.0875
+#sphere_center_56 = 0.1 0.1
+
+#sphere_center_15 = 0.11082532 0.00625
+#sphere_center_16 = 0.11082532 0.01875
+#sphere_center_17 = 0.11082532 0.03125
+#sphere_center_18 = 0.11082532 0.04375
+#sphere_center_19 = 0.11082532 0.05625
+#sphere_center_20 = 0.11082532 0.06875
+#sphere_center_21 = 0.11082532 0.08125
+#sphere_center_22 = 0.11082532 0.09375
+
+#sphere_center_57 = 0.12165 0.0
+#sphere_center_38 = 0.12165 0.0125
+#sphere_center_39 = 0.12165 0.0250
+#sphere_center_40 = 0.12165 0.0375
+#sphere_center_41 = 0.12165 0.05
+#sphere_center_42 = 0.12165 0.0625
+#sphere_center_43 = 0.12165 0.075
+#sphere_center_44 = 0.12165 0.0875
+#sphere_center_58 = 0.12165 0.1
+
+#sphere_center_45 = 0.132476 0.00625
+#sphere_center_46 = 0.132476 0.01875
+#sphere_center_47 = 0.132476 0.03125
+#sphere_center_48 = 0.132476 0.04375
+#sphere_center_49 = 0.132476 0.05625
+#sphere_center_50 = 0.132476 0.06875
+#sphere_center_51 = 0.132476 0.08125
+#sphere_center_52 = 0.132476 0.09375

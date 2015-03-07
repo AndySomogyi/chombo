@@ -1,0 +1,69 @@
+#restart_file          = check2500.2d.hdf5
+max_step  	      = 10
+#max_step  	      = 100
+#max_step  	      = 0
+max_time              = 40.0
+
+tag_on_scalar         = 1
+
+#euler
+#viscosity             = 0.0
+#refine_threshold      = 5.0
+
+viscosity             = 0.0005
+refine_threshold      = 10.0
+
+do_slip_walls         = 1
+
+use_limiting          = 1
+domain_length         = 4.0
+
+max_level	      = 3
+n_cell                = 64 16 16
+#n_cell                =  128 32 32
+#n_cell                = 256 64 64 
+#n_cell                = 512 128 128
+ref_ratio	      = 2 2 2 2
+#ref_ratio	      = 2 4 4 4
+num_filter_iterations  = 4
+num_gphi_iterations    = 2
+
+checkpoint_interval   = 100
+plot_interval	      = 100
+max_grid_size	      = 32
+fill_ratio	      = 0.7
+block_factor	      = 8
+regrid_interval	      = 4
+##this has to be bigger than one!
+max_dt_grow	      = 1.1  
+cfl		      = 0.5
+init_cfl	      = 0.5
+verbosity	      = 1
+nesting_radius	      = 2
+tag_buffer	      = 2
+flow_dir	      = 0
+spot_center	      = 0.25 0.5 0.25
+spot_radius	      = 0.25
+inflow_vel	      = 1.0
+
+perturbation_eps      = 0.1
+perturbation_freq     = 2.0
+
+
+###geometry flag
+## 0 is all regular
+#which_geom = 0
+
+## 5 is a sphere
+## 15 is a half sphere
+which_geom = 5
+#which_geom = 15
+
+sphere_radius = 0.1
+sphere_center = 0.51 0.5 0.5
+cutplane_normal = 1.0 0.0 0.0
+
+
+poisselle_inflow = false
+streak_radius = 0.02
+num_streaks   = 5

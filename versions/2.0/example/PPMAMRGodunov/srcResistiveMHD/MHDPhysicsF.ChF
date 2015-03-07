@@ -1,0 +1,1977 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+#include "LGintegrator.H"
+
+        subroutine MAGNITUDEF(
+     &    CHF_FRA1[magdata],
+     &    CHF_CONST_FRA[data],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+        integer iv
+        real_t cur,sum
+
+        CHF_MULTIDO[box;i;j;k]
+          sum = zero
+
+          do iv = 0,CHF_NCOMP[data]-1
+            cur = data(CHF_IX[i;j;k],iv)
+            sum = sum + cur*cur
+          enddo
+
+          magdata(CHF_IX[i;j;k]) = sqrt(sum)
+        CHF_ENDDO
+
+        return
+        end
+
+c-----------------------------------------------------------------------
+        subroutine MAXWAVESPEEDF(
+     &    CHF_REAL[cmax],
+     &    CHF_CONST_FRA[U],
+     &    CHF_BOX[box])
+
+        integer klo,khi
+        integer iclo,ichi
+
+#include "EosCommon.fh"
+
+#if CH_SPACEDIM==2
+        klo=1
+        khi=1
+
+        iclo=1
+        ichi=1
+#elif CH_SPACEDIM==3
+        klo=iboxlo2+1
+        khi=iboxhi2+1
+
+        iclo=iUlo2+1
+        ichi=iUhi2+1
+#endif
+c$$$        write(6,*) 'MAXWAVESPEED Box ', iboxlo0,iboxhi0,iboxlo1,iboxhi1
+c$$$        write(6,*) 'MAXWAVESPEED U   ', iUlo0,iUhi0,iUlo1,
+c$$$     &              iUhi1,iclo,ichi
+
+        cmax = zero
+        call maxWaveSpeedMHD(cmax,U,
+     &                       iUlo0+1,iUhi0+1,iUlo1+1,iUhi1+1,
+     &                       iclo,ichi,
+     &                       iboxlo0+1,iboxhi0+1,iboxlo1+1,iboxhi1+1,
+     &                       klo,khi)
+
+        return
+        end
+
+c-----------------------------------------------------------------------
+        subroutine CONSTOPRIMF(
+     &    CHF_FRA[W],
+     &    CHF_CONST_FRA[U],
+     &    CHF_BOX[box])
+
+c     Local variables
+      integer i,j,k,m
+      real_t  rho_inv, vi,vj,vk,bi,bj,bk       
+
+#include "EosCommon.fh"
+c
+        CHF_MULTIDO[box;i;j;k]
+               rho_inv=ONE/u(CHF_IX[i;j;k],0)
+               W(CHF_IX[i;j;k],0)=u(CHF_IX[i;j;k],0)
+               W(CHF_IX[i;j;k],1)=u(CHF_IX[i;j;k],1)*rho_inv
+               W(CHF_IX[i;j;k],2)=u(CHF_IX[i;j;k],2)*rho_inv
+               W(CHF_IX[i;j;k],3)=u(CHF_IX[i;j;k],3)*rho_inv
+               w(CHF_IX[i;j;k],4)=u(CHF_IX[i;j;k],4)
+               w(CHF_IX[i;j;k],5)=u(CHF_IX[i;j;k],5)
+               w(CHF_IX[i;j;k],6)=u(CHF_IX[i;j;k],6)
+               vi=W(CHF_IX[i;j;k],1)
+               vj=W(CHF_IX[i;j;k],2)
+               vk=W(CHF_IX[i;j;k],3)
+               bi=W(CHF_IX[i;j;k],4)
+               bj=W(CHF_IX[i;j;k],5)
+               bk=W(CHF_IX[i;j;k],6)
+               w(CHF_IX[i;j;k],7)=(gamma-ONE)*(u(CHF_IX[i;j;k],7)
+     &              -half*W(CHF_IX[i;j;k],0)
+     &              *(vi*vi+vj*vj+vk*vk)-half*(bi*bi+bj*bj+bk*bk))
+     &              +half*(bi*bi+bj*bj+bk*bk)
+c
+c$$$               if(v(CHF_IX[i;j;k],8).lt.0.01D0) then
+c$$$                  write(6,*) 'WARNING: Negative Pressure',CHF_IX[i;j;k],
+c$$$     &                 v(CHF_IX[i;j;k],8)
+c$$$                  write(6,*) u(CHF_IX[i;j;k],1)
+c$$$                  write(6,*) u(CHF_IX[i;j;k],2)
+c$$$                  write(6,*) u(CHF_IX[i;j;k],3)
+c$$$                  write(6,*) u(CHF_IX[i;j;k],4)
+c$$$                  write(6,*) u(CHF_IX[i;j;k],5)
+c$$$                  write(6,*) u(CHF_IX[i;j;k],6)
+c$$$                  write(6,*) u(CHF_IX[i;j;k],7)
+c$$$                  write(6,*) u(CHF_IX[i;j;k],8)
+c$$$                  v(CHF_IX[i;j;k],8)=0.01D0
+c$$$                  u(CHF_IX[i;j;k],8)=v(CHF_IX[i;j;k],8)/(gamma-ONE)+half*v(CHF_IX[i;j;k],1)
+c$$$     &              *(vi*vi+vj*vj+vk*vk)+half*(bi*bi+bj*bj+bk*bk)
+c$$$               endif
+c
+      CHF_ENDDO
+        return
+        end
+
+c-----------------------------------------------------------------------
+        subroutine PRIMTOCONSF(
+     &    CHF_FRA[U],
+     &    CHF_CONST_FRA[W],
+     &    CHF_BOX[box])
+
+        integer klo,khi
+        integer kulo,kuhi
+        integer kwlo,kwhi
+        integer i,j,k
+        real_t  rho, vi,vj,vk,bi,bj,bk
+
+#include "EosCommon.fh"
+
+        CHF_MULTIDO[box;i;j;k]
+               rho=w(CHF_IX[i;j;k],0)
+               u(CHF_IX[i;j;k],0)=rho
+               u(CHF_IX[i;j;k],1)=w(CHF_IX[i;j;k],1)*rho
+               u(CHF_IX[i;j;k],2)=w(CHF_IX[i;j;k],2)*rho
+               u(CHF_IX[i;j;k],3)=w(CHF_IX[i;j;k],3)*rho
+               u(CHF_IX[i;j;k],4)=w(CHF_IX[i;j;k],4)
+               u(CHF_IX[i;j;k],5)=w(CHF_IX[i;j;k],5)
+               u(CHF_IX[i;j;k],6)=w(CHF_IX[i;j;k],6)
+               vi=w(CHF_IX[i;j;k],1)
+               vj=w(CHF_IX[i;j;k],2)
+               vk=w(CHF_IX[i;j;k],3)
+               bi=w(CHF_IX[i;j;k],4)
+               bj=w(CHF_IX[i;j;k],5)
+               bk=w(CHF_IX[i;j;k],6)
+c               u(CHF_IX[i;j;k],7)=w(CHF_IX[i;j;k],7)/(gamma-ONE)
+c     &              +half*rho
+c     &              *(vi*vi+vj*vj+vk*vk)+half*(bi*bi+bj*bj+bk*bk)
+               u(CHF_IX[i;j;k],7)=(w(CHF_IX[i;j;k],7)
+     &              -half*(bi*bi+bj*bj+bk*bk))/(gamma-ONE)
+     &              +half*rho
+     &              *(vi*vi+vj*vj+vk*vk)+half*(bi*bi+bj*bj+bk*bk)
+      CHF_ENDDO
+
+        return
+        end
+
+c-----------------------------------------------------------------------
+c     Input W, dW
+c     Output dW projected onto characteristic space dw={l}dW
+c
+        subroutine CHARANALYSISF(
+     &    CHF_FRA[dW],
+     &    CHF_CONST_FRA[W],
+     &    CHF_CONST_INT[normdir],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+        real_t rho,rhoInv
+        real_t vi,vj,vk
+        real_t Bi, Bj, Bk
+        real_t p
+        real_t dwlocal(0:7)
+c     evl = left eigenvectors using p_t=p+1/2|B|^2 as the last variable
+        real_t evl(0:7,0:7)
+c     evlp = left eigenvectors using p as the last variable
+        real_t evlp(0:7,0:7)
+        real_t dwdwt(0:7,0:7)
+        real_t TwoSqrtInv
+        real_t tolerance
+        real_t epsilon
+        real_t  Asq
+        real_t axsq
+        real_t csndsq
+        real_t cfast
+        real_t cslow
+        real_t tmp
+        real_t alphaS,alphaF
+        real_t betaY,betaZ
+        real_t betaPerpMag
+        real_t betaPerpMagInv
+        real_t Sbx
+        integer inorm, itan,itanb
+        integer l,m,n
+
+        integer spacedim
+#include "EosCommon.fh"
+        TwoSqrtInv=ONE/SQRT(TWO)
+        tolerance=1.D-08
+        epsilon=1.D-02
+c     
+        inorm = 1 +     normdir              
+        itan = 1 + mod(normdir + 1,3)
+        itanb = 1 + mod(normdir + 2,3)
+c
+        do l=0,7,1
+           do m=0,7,1
+              evlp(l,m)=zero
+              evl(l,m)=zero
+              dwdwt(l,m)=zero
+           enddo
+        enddo
+c
+        do l=0,7,1
+           dwdwt(l,l)=one
+        enddo
+c
+        CHF_MULTIDO[box;i;j;k]
+               rho=w(CHF_IX[i;j;k;],0)
+               rhoInv=ONE/rho
+               vi=w(CHF_IX[i;j;k;],inorm)
+               vj=w(CHF_IX[i;j;k;],itan)
+               vk=w(CHF_IX[i;j;k;],itanb)
+               bi=w(CHF_IX[i;j;k;],inorm+3)
+               bj=w(CHF_IX[i;j;k;],itan+3)
+               bk=w(CHF_IX[i;j;k;],itanb+3)
+               p=w(CHF_IX[i;j;k;],7)-half*(bi*bi+bj*bj+bk*bk)
+c               write(6,*) 'CHARANALYSIS',i,j,rho,bi,bj,bk,p,
+c     &            w(CHF_IX[i;j;k;],7)  
+c     
+               dwlocal(0)=dw(CHF_IX[i;j;k;],0)
+               dwlocal(1)=dw(CHF_IX[i;j;k;],inorm)
+               dwlocal(2)=dw(CHF_IX[i;j;k;],itan)
+               dwlocal(3)=dw(CHF_IX[i;j;k;],itanb)
+               dwlocal(4)=dw(CHF_IX[i;j;k;],inorm+3)
+               dwlocal(5)=dw(CHF_IX[i;j;k;],itan+3)
+               dwlocal(6)=dw(CHF_IX[i;j;k;],itanb+3)
+               dwlocal(7)=dw(CHF_IX[i;j;k;],7)
+c
+               axsq=bi**2*rhoInv
+               Asq=(bi**2+bj**2+bk**2)*rhoInv
+               csndsq=gamma*p*rhoInv
+               tmp=SQRT(MAX(((csndsq+Asq)**2-FOUR*csndsq*axsq),ZERO))
+               cfast=half*(csndsq+Asq+tmp)
+               cslow=half*(csndsq+Asq-tmp)
+c     
+               alphaF=SQRT(MAX(csndsq-cslow,ZERO)/(cfast-cslow))
+               alphaS=SQRT(MAX(cfast-csndsq,ZERO)/(cfast-cslow))
+c     
+               Sbx=SIGN(ONE,bi)
+c     
+               betaPerpMag=SQRT(bj**2+bk**2)
+               if(ABS(betaPerpMag).lt.tolerance) then
+                  betaPerpMagInv=ONE
+                  betaY=TwoSqrtInv
+                  betaZ=TwoSqrtInv
+               else
+                  betaPerpMagInv=ONE/betaPerpMag
+                  betaY=bj*betaPerpMagInv
+                  betaZ=bk*betaPerpMagInv
+               endif
+c     
+               cfast=SQRT(cfast)
+               cslow=SQRT(MAX(cslow,ZERO))
+c     
+               axsq=SQRT(MAX(axsq,ZERO))
+c     
+c$$$  lambda(0)=w(CHF_IX[i;j;k;],2)-cfast
+c$$$  lambda(1)=w(CHF_IX[i;j;k;],2)-axsq
+c$$$  lambda(2)=w(CHF_IX[i;j;k;],2)-cslow
+c$$$  lambda(3)=w(CHF_IX[i;j;k;],2)
+c$$$  lambda(4)=w(CHF_IX[i;j;k;],2)
+c$$$  lambda(5)=w(CHF_IX[i;j;k;],2)+cslow
+c$$$  lambda(6)=w(CHF_IX[i;j;k;],2)+axsq
+c$$$  lambda(7)=w(CHF_IX[i;j;k;],2)+cfast
+
+c     Eigenvector corresponding to u
+               evlp(3,0)=ONE
+               evlp(3,7)=-ONE/csndsq
+c     
+c     Eigenvector corresponding to u
+               evlp(4,4)=ONE
+c     
+c     Eigenvector corresponding to u+ax
+               evlp(6,2)=-betaZ*TwoSqrtInv
+               evlp(6,3)=betaY*TwoSqrtInv
+               evlp(6,5)=ONE/SQRT(rho)*TwoSqrtInv*betaZ*SBx
+               evlp(6,6)=-ONE/SQRT(rho)*TwoSqrtInv*betaY*SBx
+c     
+c     Eigenvector corresponding to u-ax
+               evlp(1,2)=-betaZ*TwoSqrtInv
+               evlp(1,3)=betaY*TwoSqrtInv
+               evlp(1,5)=-evlp(6,5)
+               evlp(1,6)=-evlp(6,6)
+c     
+c     Eigenvector corresponding to u+cfast
+               evlp(7,0)=ZERO
+               evlp(7,1)=half*alphaF*cfast/csndsq
+               evlp(7,2)=-half*alphaS*cslow*betaY*Sbx/csndsq
+               evlp(7,3)=-half*alphaS*cslow*betaZ*Sbx/csndsq
+               evlp(7,5)=half*alphaS/SQRT(rho*csndsq)*betaY
+               evlp(7,6)=half*alphaS/SQRT(rho*csndsq)*betaZ
+               evlp(7,7)=half*alphaF/rho/csndsq
+c     
+c     Eigenvector corresponding to u-cfast
+               evlp(0,0)=evlp(7,0)
+               evlp(0,1)=-evlp(7,1)
+               evlp(0,2)=-evlp(7,2)
+               evlp(0,3)=-evlp(7,3)
+               evlp(0,5)=evlp(7,5)
+               evlp(0,6)=evlp(7,6)
+               evlp(0,7)=evlp(7,7)
+c     
+c     Eigenvector corresponding to u+cslow
+               evlp(5,0)=ZERO
+               evlp(5,1)=half*alphaS*cslow/csndsq
+               evlp(5,2)=half*alphaF*cfast*betaY*Sbx/csndsq
+               evlp(5,3)=half*alphaF*cfast*betaZ*Sbx/csndsq
+               evlp(5,5)=-half*alphaF/SQRT(rho*csndsq)*betaY
+               evlp(5,6)=-half*alphaF/SQRT(rho*csndsq)*betaZ
+               evlp(5,7)=half*alphaS/rho/csndsq
+c     
+c     
+c     Eigenvector corresponding to u-cslow
+               evlp(2,0)=evlp(5,0)
+               evlp(2,1)=-evlp(5,1)
+               evlp(2,2)=-evlp(5,2)
+               evlp(2,3)=-evlp(5,3)
+               evlp(2,5)=evlp(5,5)
+               evlp(2,6)=evlp(5,6)
+               evlp(2,7)=evlp(5,7)
+c     
+               dwdwt(7,4)=-bi
+               dwdwt(7,5)=-bj
+               dwdwt(7,6)=-bk
+c
+               do n=0,7,1
+                  do l=0,7,1
+                     evl(n,l)=ZERO
+                  enddo
+               enddo
+c     evl(i,:,:)=matmul(evlp,dwdwt)
+               do n=0,7,1
+                  do l=0,7,1
+                     do m=0,7,1
+                        evl(n,l)=evl(n,l)+evlp(n,m)*dwdwt(m,l)
+c                     evl(n,l)=ZERO
+                     enddo
+                  enddo
+               enddo   
+c
+               do l=0,7,1
+                  dw(CHF_IX[i;j;k;],l)=ZERO
+c                  evl(l,1)=one
+               enddo
+               do m=0,7,1
+                  dw(CHF_IX[i;j;k;],0)=dw(CHF_IX[i;j;k;],0)
+     &                 +evl(0,m)*dwlocal(m)
+                  dw(CHF_IX[i;j;k;],1)=dw(CHF_IX[i;j;k;],1)
+     &                 +evl(1,m)*dwlocal(m)
+                  dw(CHF_IX[i;j;k;],2)=dw(CHF_IX[i;j;k;],2)
+     &                +evl(2,m)*dwlocal(m)
+                  dw(CHF_IX[i;j;k;],3)=dw(CHF_IX[i;j;k;],3)
+     &                +evl(3,m)*dwlocal(m)
+                  dw(CHF_IX[i;j;k;],4)=dw(CHF_IX[i;j;k;],4)
+     &                 +evl(4,m)*dwlocal(m)
+                  dw(CHF_IX[i;j;k;],5)=dw(CHF_IX[i;j;k;],5)
+     &                 +evl(5,m)*dwlocal(m)
+                  dw(CHF_IX[i;j;k;],6)=dw(CHF_IX[i;j;k;],6)
+     &                 +evl(6,m)*dwlocal(m)
+                  dw(CHF_IX[i;j;k;],7)=dw(CHF_IX[i;j;k;],7)
+     &                 +evl(7,m)*dwlocal(m)
+               enddo
+c     enddo
+        CHF_ENDDO
+c     
+        return
+        end
+
+c-----------------------------------------------------------------------
+        subroutine CHARSYNTHESISF(
+     &    CHF_FRA[dW],
+     &    CHF_CONST_FRA[W],
+     &    CHF_CONST_INT[normdir],
+     &    CHF_BOX[box])
+
+
+        real_t alphap,alpham
+
+        real_t CHF_DDECL[alpha0r;alpha0v1;alpha0v2]
+        real_t rho,rhoInv
+        real_t vi,vj,vk
+        real_t Bi, Bj, Bk
+        real_t p
+        real_t dwlocal(0:7)
+        real_t TwoSqrtInv
+        real_t tolerance
+        real_t epsilon
+c       evr = right eigenvectors using p_t=p+1/2|B|^2 as the last variable
+        real_t evr(0:7,0:7)
+c       evrp = right eigenvectors using p as the last variable
+        real_t evrp(0:7,0:7)
+c
+        real_t dwtdw(0:7,0:7)
+        real_t  Asq
+        real_t axsq
+        real_t csndsq
+        real_t cfast
+        real_t cslow
+        real_t tmp
+        real_t alphaS,alphaF
+        real_t betaY,betaZ
+        real_t betaPerpMag
+        real_t betaPerpMagInv
+        real_t Sbx
+        integer inorm, itan,itanb
+        integer CHF_DDECL[i;j;k]
+        integer l,m,n
+#include "EosCommon.fh"
+
+        integer spacedim
+        TwoSqrtInv=ONE/SQRT(TWO)
+        tolerance=1.D-08
+        epsilon=1.D-02
+c     
+        inorm = 1 +     normdir              
+        itan = 1 + mod(normdir + 1,3)
+        itanb = 1 + mod(normdir + 2,3)
+c
+        do l=0,7,1
+           do m=0,7,1
+              evrp(l,m)=ZERO
+              dwtdw(l,m)=zero
+         enddo
+        enddo
+c
+        do l=0,7,1
+           dwtdw(l,l)=one
+        enddo
+c
+        CHF_MULTIDO[box;i;j;k]
+               rho=w(CHF_IX[i;j;k],0)
+               rhoInv=ONE/rho
+               vi=w(CHF_IX[i;j;k],inorm)
+               vj=w(CHF_IX[i;j;k],itan)
+               vk=w(CHF_IX[i;j;k],itanb)
+               bi=w(CHF_IX[i;j;k],inorm+3)
+               bj=w(CHF_IX[i;j;k],itan+3)
+               bk=w(CHF_IX[i;j;k],itanb+3)
+               p=w(CHF_IX[i;j;k],7)-half*(bi*bi+bj*bj+bk*bk)
+c     
+               dwlocal(0)=dw(CHF_IX[i;j;k],0)
+               dwlocal(1)=dw(CHF_IX[i;j;k],1)
+               dwlocal(2)=dw(CHF_IX[i;j;k],2)
+               dwlocal(3)=dw(CHF_IX[i;j;k],3)
+               dwlocal(4)=dw(CHF_IX[i;j;k],4)
+               dwlocal(5)=dw(CHF_IX[i;j;k],5)
+               dwlocal(6)=dw(CHF_IX[i;j;k],6)
+               dwlocal(7)=dw(CHF_IX[i;j;k],7)
+c
+               axsq=bi**2*rhoInv
+               Asq=(bi**2+bj**2+bk**2)*rhoInv
+               csndsq=gamma*p*rhoInv
+               tmp=SQRT(MAX(((csndsq+Asq)**2-FOUR*csndsq*axsq),ZERO))
+               cfast=half*(csndsq+Asq+tmp)
+               cslow=half*(csndsq+Asq-tmp)
+c     
+               alphaF=SQRT(MAX(csndsq-cslow,ZERO)/(cfast-cslow))
+               alphaS=SQRT(MAX(cfast-csndsq,ZERO)/(cfast-cslow))
+c     
+               Sbx=SIGN(ONE,bi)
+c     
+               betaPerpMag=SQRT(bj**2+bk**2)
+               if(ABS(betaPerpMag).lt.tolerance) then
+                  betaPerpMagInv=ONE
+                  betaY=TwoSqrtInv
+                  betaZ=TwoSqrtInv
+               else
+                  betaPerpMagInv=ONE/betaPerpMag
+                  betaY=bj*betaPerpMagInv
+                  betaZ=bk*betaPerpMagInv
+               endif
+c     
+               cfast=SQRT(cfast)
+               cslow=SQRT(MAX(cslow,ZERO))
+c     
+               axsq=SQRT(MAX(axsq,ZERO))
+c     
+c$$$  lambda(0)=w(CHF_IX[i;j;k;],2)-cfast
+c$$$  lambda(1)=w(CHF_IX[i;j;k;],2)-axsq
+c$$$  lambda(2)=w(CHF_IX[i;j;k;],2)-cslow
+c$$$  lambda(3)=w(CHF_IX[i;j;k;],2)
+c$$$  lambda(4)=w(CHF_IX[i;j;k;],2)
+c$$$  lambda(5)=w(CHF_IX[i;j;k;],2)+cslow
+c$$$  lambda(6)=w(CHF_IX[i;j;k;],2)+axsq
+c$$$  lambda(7)=w(CHF_IX[i;j;k;],2)+cfast
+c
+c     Right eigenvectors
+c     Eigenvector corresponding to u
+               evrp(0,3)=ONE
+c     
+c     Eigenvector corresponding to u
+               evrp(4,4)=ONE
+c     
+c     Eigenvector corresponding to u+ax
+               evrp(2,6)=-betaZ*TwoSqrtInv
+               evrp(3,6)=betaY*TwoSqrtInv
+               evrp(5,6)=SQRT(rho)*TwoSqrtInv*betaZ*SBx
+               evrp(6,6)=-SQRT(rho)*TwoSqrtInv*betaY*SBx
+c     
+c     Eigenvector corresponding to u-ax
+               evrp(2,1)=-betaZ*TwoSqrtInv
+               evrp(3,1)=betaY*TwoSqrtInv
+               evrp(5,1)=-evrp(5,6)
+               evrp(6,1)=-evrp(6,6)
+c     
+c     Eigenvector corresponding to u+cfast
+               evrp(0,7)=rho*alphaF
+               evrp(1,7)=alphaF*cfast
+               evrp(2,7)=-alphaS*cslow*betaY*Sbx
+               evrp(3,7)=-alphaS*cslow*betaZ*Sbx
+               evrp(5,7)=alphaS*SQRT(rho*csndsq)*betaY
+               evrp(6,7)=alphaS*SQRT(rho*csndsq)*betaZ
+               evrp(7,7)=rho*alphaF*csndsq
+c     
+c     Eigenvector corresponding to u-cfast
+               evrp(0,0)=evrp(0,7)
+               evrp(1,0)=-evrp(1,7)
+               evrp(2,0)=-evrp(2,7)
+               evrp(3,0)=-evrp(3,7)
+               evrp(5,0)=evrp(5,7)
+               evrp(6,0)=evrp(6,7)
+               evrp(7,0)=evrp(7,7)
+c     
+c     Eigenvector corresponding to u+cslow
+               evrp(0,5)=rho*alphaS
+               evrp(1,5)=alphaS*cslow
+               evrp(2,5)=alphaF*cfast*betaY*Sbx
+               evrp(3,5)=alphaF*cfast*betaZ*Sbx
+               evrp(5,5)=-alphaF*SQRT(rho*csndsq)*betaY
+               evrp(6,5)=-alphaF*SQRT(rho*csndsq)*betaZ
+               evrp(7,5)=rho*alphaS*csndsq
+c     
+c     Eigenvector corresponding to u-cslow
+               evrp(0,2)=evrp(0,5)
+               evrp(1,2)=-evrp(1,5)
+               evrp(2,2)=-evrp(2,5)
+               evrp(3,2)=-evrp(3,5)
+               evrp(5,2)=evrp(5,5)
+               evrp(6,2)=evrp(6,5)
+               evrp(7,2)=evrp(7,5)
+c     
+               dwtdw(7,4)=bi
+               dwtdw(7,5)=bj
+               dwtdw(7,6)=bk
+c
+               do n=0,7,1
+                  do l=0,7,1
+                     evr(n,l)=ZERO
+                  enddo
+               enddo
+c     evr(i,:,:)=matmul(dwtdw,evrp)
+               do n=0,7,1
+                  do l=0,7,1
+                     do m=0,7,1
+                        evr(n,l)=evr(n,l)+dwtdw(n,m)*evrp(m,l)
+c                     evr(n,l)=ZERO
+                     enddo
+                  enddo
+               enddo   
+c
+               do l=0,7,1
+                  dw(CHF_IX[i;j;k],l)=ZERO
+c                  evr(l,l)=one
+               enddo
+               do m=0,7,1
+                  dw(CHF_IX[i;j;k],0)=dw(CHF_IX[i;j;k],0)
+     &                 +evr(0,m)*dwlocal(m)
+                  dw(CHF_IX[i;j;k],inorm)=dw(CHF_IX[i;j;k],inorm)
+     &                 +evr(1,m)*dwlocal(m)
+                  dw(CHF_IX[i;j;k],itan)=dw(CHF_IX[i;j;k],itan)
+     &                 +evr(2,m)*dwlocal(m)
+                  dw(CHF_IX[i;j;k],itanb)=dw(CHF_IX[i;j;k],itanb)
+     &                 +evr(3,m)*dwlocal(m)
+                  dw(CHF_IX[i;j;k],inorm+3)=dw(CHF_IX[i;j;k],inorm+3)
+     &                 +evr(4,m)*dwlocal(m)
+                  dw(CHF_IX[i;j;k],itan+3)=dw(CHF_IX[i;j;k],itan+3)
+     &                 +evr(5,m)*dwlocal(m)
+                  dw(CHF_IX[i;j;k],itanb+3)=dw(CHF_IX[i;j;k],itanb+3)
+     &                 +evr(6,m)*dwlocal(m)
+                  dw(CHF_IX[i;j;k],7)=dw(CHF_IX[i;j;k],7)
+     &                 +evr(7,m)*dwlocal(m)
+               enddo
+c            enddo
+       CHF_ENDDO
+      return
+      end
+
+c-----------------------------------------------------------------------
+        subroutine CHARVALUESF(
+     &    CHF_FRA[lambda],
+     &    CHF_CONST_FRA[W],
+     &    CHF_CONST_INT[normdir],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+      real_t rhoInv
+      real_t rho
+      real_t Asq
+      real_t axsq
+      real_t csndsq
+      real_t cfast
+      real_t cslow
+      real_t tmp
+      real_t alphaS,alphaF
+      real_t betaY,betaZ
+      real_t betaPerpMag
+      real_t betaPerpMagInv
+      real_t Sbx
+      real_t vi,vj,vk
+      real_t bi,bj,bk
+      real_t p
+      real_t tolerance
+      integer inorm, itan, itanb
+c     
+
+#include "EosCommon.fh"
+c     
+c     
+      inorm = 1 +     normdir              
+      itan = 1 + mod(normdir + 1,3)
+      itanb = 1 + mod(normdir + 2,3)
+      CHF_MULTIDO[box;i;j;k]
+               rho=w(CHF_IX[i;j;k],0)
+               rhoInv=ONE/rho
+               vi=w(CHF_IX[i;j;k],inorm)
+               vj=w(CHF_IX[i;j;k],itan)
+               vk=w(CHF_IX[i;j;k],itanb)
+               bi=w(CHF_IX[i;j;k],inorm+3)
+               bj=w(CHF_IX[i;j;k],itan+3)
+               bk=w(CHF_IX[i;j;k],itanb+3)
+               p=w(CHF_IX[i;j;k],7)-half*(bi*bi+bj*bj+bk*bk)
+c     
+               axsq=bi**2*rhoInv
+               Asq=(bi**2+bj**2+bk**2)*rhoInv
+               csndsq=gamma*p*rhoInv
+               tmp=SQRT(MAX(((csndsq+Asq)**2-FOUR*csndsq*axsq),ZERO))
+               cfast=half*(csndsq+Asq+tmp)
+               cslow=half*(csndsq+Asq-tmp)
+c     
+c$$$               alphaF=SQRT(MAX(csndsq-cslow,ZERO)/(cfast-cslow))
+c$$$               alphaS=SQRT(MAX(cfast-csndsq,ZERO)/(cfast-cslow))
+c$$$c     
+c$$$               Sbx=SIGN(ONE,bi)
+c$$$c     
+c$$$               betaPerpMag=SQRT(bj**2+bk**2)
+c$$$               if(ABS(betaPerpMag).lt.tolerance) then
+c$$$                  betaPerpMagInv=ONE
+c$$$                  betaY=TwoSqrtInv
+c$$$                  betaZ=TwoSqrtInv
+c$$$               else
+c$$$                  betaPerpMagInv=ONE/betaPerpMag
+c$$$                  betaY=bj*betaPerpMagInv
+c$$$                  betaZ=bk*betaPerpMagInv
+c$$$               endif
+c     
+               cfast=SQRT(cfast)
+               cslow=SQRT(MAX(cslow,ZERO))
+c     
+               axsq=SQRT(MAX(axsq,ZERO))
+c     
+               lambda(CHF_IX[i;j;k],0)=vi-cfast
+               lambda(CHF_IX[i;j;k],1)=vi-axsq
+               lambda(CHF_IX[i;j;k],2)=vi-cslow
+               lambda(CHF_IX[i;j;k],3)=vi
+               lambda(CHF_IX[i;j;k],4)=vi
+               lambda(CHF_IX[i;j;k],5)=vi+cslow
+               lambda(CHF_IX[i;j;k],6)=vi+axsq
+               lambda(CHF_IX[i;j;k],7)=vi+cfast
+      CHF_ENDDO
+      return
+      end
+
+
+c-----------------------------------------------------------------------
+        subroutine GETADWDXF(
+     &    CHF_FRA[adwdx],
+     &    CHF_CONST_FRA[WHalf],
+     &    CHF_CONST_FRA[W],
+     &    CHF_CONST_REAL[dtodx],
+     &    CHF_CONST_INT[normdir],
+     &    CHF_BOX[box])
+c
+        integer i,j,k,l,m
+        real_t  rho, rho_inv,vi,vj,vk,bi,bj,bk, p
+        real_t  drho, dvi,dvj,dvk,dbi,dbj,dbk, dp, divb
+        integer inorm,itan,itanb
+        integer ioff, joff, koff
+        real_t uc(0:7), fl(0:7), fr(0:7), sdivb(0:7)
+c
+#include "EosCommon.fh"
+c
+
+c
+      inorm = 1 +     normdir              
+      itan = 1 + mod(normdir + 1,3)
+      itanb = 1 + mod(normdir + 2,3)
+c
+      ioff = 0
+      joff = 0
+      koff = 0
+      if(normdir.eq.0) ioff=1
+      if(normdir.eq.1) joff=1
+      if(normdir.eq.2) koff=1
+c
+      CHF_MULTIDO[box;i;j;k]
+               rho=whalf(CHF_IX[i;j;k],0)
+               vi=whalf(CHF_IX[i;j;k],inorm)
+               vj=whalf(CHF_IX[i;j;k],itan)
+               vk=whalf(CHF_IX[i;j;k],itanb)
+               bi=whalf(CHF_IX[i;j;k],inorm+3)
+               bj=whalf(CHF_IX[i;j;k],itan+3)
+               bk=whalf(CHF_IX[i;j;k],itanb+3)
+               p=whalf(CHF_IX[i;j;k],7)-half*(bi*bi+bj*bj+bk*bk)
+c               divb=whalf(CHF_IX[i;j;k],inorm+3)
+c$$$               sdivb(2)=bi
+c$$$               sdivb(3)=bj
+c$$$               sdivb(4)=bk
+c$$$               sdivb(5)=vi
+c$$$               sdivb(6)=vj
+c$$$               sdivb(7)=vk
+c$$$               sdivb(8)=(vi*bi+vj*bj+vk*bk)
+               fl(0)=rho*vi
+               fl(1)=rho*vi*vi +p+half*(bj*bj+bk*bk-bi*bi)
+               fl(2)=rho*vi*vj-bi*bj
+               fl(3)=rho*vi*vk-bi*bk
+               fl(4)=ZERO
+               fl(5)=vi*bj-vj*bi
+               fl(6)=vi*bk-vk*bi
+               fl(7)=(half*rho*(vi*vi+vj*vj+vk*vk)+p/(gamma-ONE)+
+     &           p+(bi*bi+bj*bj+bk*bk))*vi-
+     &           bi*(vi*bi+vj*bj+vk*bk)
+               rho=whalf(CHF_IX[i+ioff;j+joff;k+koff],0)
+               vi=whalf(CHF_IX[i+ioff;j+joff;k+koff],inorm)
+               vj=whalf(CHF_IX[i+ioff;j+joff;k+koff],itan)
+               vk=whalf(CHF_IX[i+ioff;j+joff;k+koff],itanb)
+               bi=whalf(CHF_IX[i+ioff;j+joff;k+koff],inorm+3)
+               bj=whalf(CHF_IX[i+ioff;j+joff;k+koff],itan+3)
+               bk=whalf(CHF_IX[i+ioff;j+joff;k+koff],itanb+3)
+               p=whalf(CHF_IX[i+ioff;j+joff;k+koff],7)
+     &              -half*(bi*bi+bj*bj+bk*bk)
+               fr(0)=rho*vi
+               fr(1)=rho*vi*vi +p+half*(bj*bj+bk*bk-bi*bi)
+               fr(2)=rho*vi*vj-bi*bj
+               fr(3)=rho*vi*vk-bi*bk
+               fr(4)=ZERO
+               fr(5)=vi*bj-vj*bi
+               fr(6)=vi*bk-vk*bi
+               fr(7)=(half*rho*(vi*vi+vj*vj+vk*vk)+p/(gamma-ONE)+
+     &           p+(bi*bi+bj*bj+bk*bk))*vi-
+     &           bi*(vi*bi+vj*bj+vk*bk)
+c               divb=bi-divb
+c$$$               sdivb(2)=half*(sdivb(2)+bi)
+c$$$               sdivb(3)=half*(sdivb(3)+bj)
+c$$$               sdivb(4)=half*(sdivb(4)+bk)
+c$$$               sdivb(5)=half*(sdivb(5)+vi)
+c$$$               sdivb(6)=half*(sdivb(6)+vj)
+c$$$               sdivb(7)=half*(sdivb(7)+vk)
+c$$$               sdivb(8)=half*(sdivb(8)+(vi*bi+vj*bj+vk*bk))
+               rho=w(CHF_IX[i;j;k],0)
+               vi=w(CHF_IX[i;j;k],inorm)
+               vj=w(CHF_IX[i;j;k],itan)
+               vk=w(CHF_IX[i;j;k],itanb)
+               bi=w(CHF_IX[i;j;k],inorm+3)
+               bj=w(CHF_IX[i;j;k],itan+3)
+               bk=w(CHF_IX[i;j;k],itanb+3)
+               p=w(CHF_IX[i;j;k],7)
+     &              -half*(bi*bi+bj*bj+bk*bk)
+               uc(0)=rho
+               uc(1)=rho*vi
+               uc(2)=rho*vj
+               uc(3)=rho*vk
+               uc(4)=bi
+               uc(5)=bj
+               uc(6)=bk
+               uc(7)=half*rho*(vi*vi+vj*vj+vk*vk)+p/(gamma-ONE)+
+     &           half*(bi*bi+bj*bj+bk*bk)
+c
+               do l=0,7,1
+                  uc(l)=uc(l)+dtodx*(fr(l)-fl(l))
+               enddo
+c$$$c  non-cons source
+c$$$               do l=2,8,1
+c$$$                  uc(l)=uc(l)-dtodx*divb*sdivb(l)
+c$$$               enddo
+               rho=uc(0)
+               vi=uc(1)/uc(0)
+               vj=uc(2)/uc(0)
+               vk=uc(3)/uc(0)
+               bi=uc(4)
+               bj=uc(5)
+               bk=uc(6)
+               p=(gamma-ONE)*(uc(7)-half*rho*(vi*vi+vj*vj+vk*vk)
+     &              -half*(bi*bi+bj*bj+bk*bk))
+     &              +half*(bi*bi+bj*bj+bk*bk)
+               adwdx(CHF_IX[i;j;k],0)=rho-w(CHF_IX[i;j;k],0)
+               adwdx(CHF_IX[i;j;k],inorm)=vi-w(CHF_IX[i;j;k],inorm)
+               adwdx(CHF_IX[i;j;k],itan)=vj-w(CHF_IX[i;j;k],itan)
+               adwdx(CHF_IX[i;j;k],itanb)=vk-w(CHF_IX[i;j;k],itanb)
+               adwdx(CHF_IX[i;j;k],inorm+3)=bi-w(CHF_IX[i;j;k],inorm+3)
+               adwdx(CHF_IX[i;j;k],itan+3)=bj-w(CHF_IX[i;j;k],itan+3)
+               adwdx(CHF_IX[i;j;k],itanb+3)=bk-w(CHF_IX[i;j;k],itanb+3)
+               adwdx(CHF_IX[i;j;k],7)=p-w(CHF_IX[i;j;k],7)
+      CHF_ENDDO
+c
+        return
+        end
+
+c-----------------------------------------------------------------------
+        subroutine RIEMANNF(
+     &    CHF_FRA[Wgdnv],
+     &    CHF_CONST_FRA[WLeft],
+     &    CHF_CONST_FRA[WRight],
+     &    CHF_CONST_INT[idir],
+     &    CHF_BOX[box])
+
+        integer klo,khi
+        integer llo,lhi
+        integer kwleftlo,kwlefthi
+        integer kwrightlo,kwrighthi
+        integer kwgdnvlo,kwgdnvhi
+        integer i,j
+
+#include "EosCommon.fh"
+
+        if (idir .eq. 0) then
+          llo = iboxlo0+1
+          lhi = iboxhi0+1
+        elseif (idir .eq. 1) then
+          llo = iboxlo1+1
+          lhi = iboxhi1+1
+#if CH_SPACEDIM==3
+        elseif (idir .eq. 2) then
+          llo = iboxlo2+1
+          lhi = iboxhi2+1
+#endif
+        endif
+
+#if CH_SPACEDIM==2
+        klo=1
+        khi=1
+
+        kwleftlo=1
+        kwlefthi=1
+
+        kwrightlo=1
+        kwrighthi=1
+
+        kwgdnvlo=1
+        kwgdnvhi=1
+#elif CH_SPACEDIM==3
+        klo=iboxlo2+1
+        khi=iboxhi2+1
+
+        kwleftlo=iwleftlo2+1
+        kwlefthi=iwlefthi2+1
+
+        kwrightlo=iwrightlo2+1
+        kwrighthi=iwrighthi2+1
+
+        kwgdnvlo=iwgdnvlo2+1
+        kwgdnvhi=iwgdnvhi2+1
+#endif
+        call RiemannSolverMHD(Wgdnv,WLeft,WRight,
+     &       iWgdnvlo0+1,iWgdnvhi0+1,iWgdnvlo1+1,iWgdnvhi1+1,
+     &       kwgdnvlo,kwgdnvhi,
+     &       iWleftlo0+1,iWlefthi0+1,iWleftlo1+1,iWlefthi1+1,
+     &       kwleftlo,kwlefthi,
+     &       iWrightlo0+1,iWrighthi0+1,iWrightlo1+1,iWrighthi1+1,
+     &       kwrightlo,kwrighthi,
+     &       iboxlo0+1,iboxhi0+1,iboxlo1+1,iboxhi1+1,
+     &       klo,khi,idir,llo,lhi)
+
+        return
+        end
+
+c-----------------------------------------------------------------------
+        subroutine GETFLUXF(
+     &    CHF_FRA[F],
+     &    CHF_CONST_FRA[Wgdnv],
+     &    CHF_CONST_INT[idir],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+        integer inorm ,itan1 ,itan2
+        integer inormb,itanb1,itanb2
+        integer inormc,itanc1,itanc2
+        real_t r,p,u,v,w,e,ke,bi,bj,bk
+        integer spacedim,m
+
+#include "EosCommon.fh"
+
+        spacedim = 3
+
+        inorm = WVELX + idir;
+        itan1 = WVELX + mod(idir + 1,spacedim)
+        itan2 = WVELX + mod(idir + 2,spacedim)
+
+        inormb = WBX + idir;
+        itanb1 = WBX + mod(idir + 1,spacedim)
+        itanb2 = WBX + mod(idir + 2,spacedim)
+
+        inormc = UMOMX + idir;
+        itanc1 = UMOMX + mod(idir + 1,spacedim)
+        itanc2 = UMOMX + mod(idir + 2,spacedim)
+c
+        CHF_MULTIDO[box;i;j;k]
+c         write(6,*) 'FLUX BZ',i,j,Wgdnv(CHF_IX[i;j;k],WBZ)
+
+          r = max(smallr,Wgdnv(CHF_IX[i;j;k],WRHO))
+
+          u = Wgdnv(CHF_IX[i;j;k],inorm)
+          v = Wgdnv(CHF_IX[i;j;k],itan1)
+          w = Wgdnv(CHF_IX[i;j;k],itan2)
+
+          bi = Wgdnv(CHF_IX[i;j;k],inormb)
+          bj = Wgdnv(CHF_IX[i;j;k],itanb1)
+          bk = Wgdnv(CHF_IX[i;j;k],itanb2)
+
+          p = Wgdnv(CHF_IX[i;j;k],WPRES)-half*(bi*bi+bj*bj+bk*bk)
+c          p = max(smallp,Wgdnv(CHF_IX[i;j;k],WPRES))
+          p = max(smallp,p)
+          e = p / (gamma - one)
+
+          F(CHF_IX[i;j;k],URHO) = r*u
+
+          F(CHF_IX[i;j;k],inormc) = r*u*u + p + 
+     &         half*(bj*bj + bk*bk - bi*bi)
+          F(CHF_IX[i;j;k],itanc1) = r*u*v - bi*bj
+          F(CHF_IX[i;j;k],itanc2) = r*u*w - bi*bk
+
+          F(CHF_IX[i;j;k],inormc+3) = zero
+          F(CHF_IX[i;j;k],itanc1+3) = u*bj - v*bi
+          F(CHF_IX[i;j;k],itanc2+3) = u*bk - w*bi
+
+          ke = half*r*(u*u + v*v + w*w)
+
+          F(CHF_IX[i;j;k],UENG) = 
+     &         u*(e + p + ke + (bi*bi + bj*bj + bk*bk))
+     &                          - bi*(u*bi + v*bj + w*bk)
+
+c$$$
+c$$$          F(CHF_IX[i;j;k],DIVB)      = bi;
+c$$$
+c$$$          F(CHF_IX[i;j;k],inormc+8)  = u;
+c$$$          F(CHF_IX[i;j;k],itanc1+8)  = v;
+c$$$          F(CHF_IX[i;j;k],itanc2+8)  = w;
+c$$$
+c$$$          F(CHF_IX[i;j;k],inormc+11) = bi;
+c$$$          F(CHF_IX[i;j;k],itanc1+11) = bj;
+c$$$          F(CHF_IX[i;j;k],itanc2+11) = bk;
+        CHF_ENDDO
+
+        return
+        end
+
+c-----------------------------------------------------------------------
+        subroutine UPDATECONSF(
+     &    CHF_FRA[U],
+     &    CHF_CONST_FRA[F],
+     &    CHF_CONST_REAL[dtbydx],
+     &    CHF_CONST_INT[idir],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i   ;j   ;k   ]
+        integer CHF_DDECL[ioff;joff;koff]
+
+        integer iv
+
+        CHF_DTERM[
+        ioff = CHF_ID(0,idir);
+        joff = CHF_ID(1,idir);
+        koff = CHF_ID(2,idir)]
+
+c$$$        CHF_MULTIDO[box;i;j;k]
+c$$$         write(6,*) 'UPDATE CONS BZ',i,j,U(CHF_IX[i;j;k],UBZ)
+c$$$        CHF_ENDDO
+
+        do iv = 0,CHF_NCOMP[U] - 1
+          CHF_MULTIDO[box;i;j;k]
+            U(CHF_IX[i;j;k],iv) = U(CHF_IX[i;j;k],iv)
+     &        - dtbydx * (F(CHF_IX[i+ioff;j+joff;k+koff],iv)
+     &                  - F(CHF_IX[i     ;j     ;k     ],iv))
+          CHF_ENDDO
+        enddo
+
+        return
+        end
+
+c-----------------------------------------------------------------------
+        subroutine GETRELGRADF(
+     &    CHF_FRA1[du],
+     &    CHF_CONST_FRA1[u],
+     &    CHF_CONST_INT[idir],
+     &    CHF_BOX[loBox],
+     &    CHF_CONST_INT[hasLo],
+     &    CHF_BOX[hiBox],
+     &    CHF_CONST_INT[hasHi],
+     &    CHF_BOX[centerBox])
+
+        integer CHF_DDECL[i   ;j   ;k   ]
+        integer CHF_DDECL[ioff;joff;koff]
+        real_t diff,aver
+
+        CHF_DTERM[
+        ioff = CHF_ID(0,idir);
+        joff = CHF_ID(1,idir);
+        koff = CHF_ID(2,idir)]
+
+c       Perform first difference calculation in the interior.
+
+        CHF_MULTIDO[centerBox;i;j;k]
+          diff = half*(u(CHF_IX[i+ioff;j+joff;k+koff])
+     &                -u(CHF_IX[i-ioff;j-joff;k-koff]))
+          aver = half*(u(CHF_IX[i+ioff;j+joff;k+koff])
+     &                +u(CHF_IX[i-ioff;j-joff;k-koff]))
+          du(CHF_IX[i;j;k]) = diff / aver
+        CHF_ENDDO
+
+c       Perform calculation on the cells adjacent to the domain boundary in
+c       current direction, if required.
+
+        if (hasLo .eq. 1) then
+          CHF_MULTIDO[loBox;i;j;k]
+            diff = (u(CHF_IX[i+ioff;j+joff;k+koff])
+     &             -u(CHF_IX[i     ;j     ;k     ]))
+            aver = half*(u(CHF_IX[i+ioff;j+joff;k+koff])
+     &                  +u(CHF_IX[i     ;j     ;k     ]))
+            du(CHF_IX[i;j;k]) = diff / aver
+          CHF_ENDDO
+        endif
+
+        if (hasHi .eq. 1) then
+          CHF_MULTIDO[hiBox;i;j;k]
+            diff = (u(CHF_IX[i     ;j     ;k     ])
+     &             -u(CHF_IX[i-ioff;j-joff;k-koff]))
+            aver = half*(u(CHF_IX[i     ;j     ;k     ])
+     &                  +u(CHF_IX[i-ioff;j-joff;k-koff]))
+            du(CHF_IX[i;j;k]) = diff / aver
+          CHF_ENDDO
+        endif
+
+        return
+        end
+c-----------------------------------------------------------------------
+        subroutine DIVERGENCEBF(
+     &    CHF_FRA[divb],
+     &    CHF_CONST_FRA[whalf],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[idir],
+     &    CHF_BOX[Box])
+c
+        integer CHF_DDECL[ioff;joff;koff]
+        integer CHF_DDECL[i;j;k]
+        integer inorm
+c        write(6,*) 'DIVERGENCEB Box', iboxlo0,iboxhi0,iboxlo1,iboxhi1
+c        write(6,*) 'DIVERGENCEB idir', idir
+c        write(6,*) 'DIVERGENCEB dx', dx
+c
+        CHF_DTERM[
+        ioff = CHF_ID(0,idir);
+        joff = CHF_ID(1,idir);
+        koff = CHF_ID(2,idir)]
+c
+        inorm = WBX +     idir
+c
+        CHF_MULTIDO[box;i;j;k]
+          divb(CHF_IX[i;j;k],0)=divb(CHF_IX[i;j;k],0)+one/dx*(
+     &       whalf(CHF_IX[i+ioff;j+joff;k+koff],inorm)-
+     &       whalf(CHF_IX[i;j;k],inorm))
+c          write(6,*) i,j,divb(i,j,0)
+        CHF_ENDDO
+c
+       return
+        end
+
+c-----------------------------------------------------------------------
+        subroutine PROJECTBFIELDF(
+     &    CHF_FRA[whalf],
+     &    CHF_CONST_FRA[phi],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[idir],
+     &    CHF_BOX[Box])
+c
+        integer CHF_DDECL[ioff;joff;koff]
+        integer CHF_DDECL[i;j;k]
+        integer inorm
+c$$$        write(6,*) 'PROJECTFIELDF Box', iboxlo0,iboxhi0,iboxlo1,iboxhi1
+c$$$        write(6,*) 'PROJECTFIELDF Whalf', 
+c$$$     &       iwhalflo0,iwhalfhi0,iwhalflo1,iwhalfhi1
+c$$$        write(6,*) 'PROJECTFIELDF phi', 
+c$$$     &       iphilo0,iphihi0,iphilo1,iphihi1
+c$$$        write(6,*) 'PROJECTFIELDF idir', idir
+c$$$        write(6,*) 'PROJECTFIELDF dx', dx
+c
+c        return
+        CHF_DTERM[
+        ioff = CHF_ID(0,idir);
+        joff = CHF_ID(1,idir);
+        koff = CHF_ID(2,idir)]
+c
+        inorm = WBX +     idir
+c
+        CHF_MULTIDO[box;i;j;k]
+          whalf(CHF_IX[i;j;k],inorm)=whalf(CHF_IX[i;j;k],inorm)
+     &            -one/dx*(
+     &         phi(CHF_IX[i;j;k],0)-
+     &         phi(CHF_IX[i-ioff;j-joff;k-koff],0))
+        CHF_ENDDO
+c
+       return
+        end
+
+c-----------------------------------------------------------------------
+c     STONE CORRECTION FOR NORMAL PREDICTOR
+        subroutine STONECORRECTION(
+     &     CHF_FRA[whalf],
+     &     CHF_CONST_FRA[W],
+     &     CHF_BOX[loBox],
+     &     CHF_CONST_INT[hasLo],
+     &     CHF_BOX[hiBox],
+     &     CHF_CONST_INT[hasHi],
+     &     CHF_BOX[box],
+     &     CHF_CONST_INT[idir],
+     &     CHF_CONST_REAL[dtbydx])
+
+        integer CHF_DDECL[ioff;joff;koff]
+        integer CHF_DDECL[i;j;k]
+        integer inorm, itan, itanb
+c
+        real_t divb
+        real_t rho,bi,bj,bk,vi,vj,vk
+#include "EosCommon.fh"
+c
+        write(6,*) 'STONECORR Box', iboxlo0,iboxhi0,iboxlo1,iboxhi1
+        write(6,*) 'STONECORR Whalf', 
+     &       iwhalflo0,iwhalfhi0,iwhalflo1,iwhalfhi1
+        write(6,*) 'STONECORR W', 
+     &       iWlo0,iWhi0,iWlo1,iWhi1
+        write(6,*) 'STONECORR idir', idir
+        write(6,*) 'STONECORR dtbydx', dtbydx
+        write(6,*) 'STONECORR has', hasHi, hasLo
+c
+c        return
+        CHF_DTERM[
+        ioff = CHF_ID(0,idir);
+        joff = CHF_ID(1,idir);
+        koff = CHF_ID(2,idir)]
+c
+        inorm = WBX +     idir
+        itan = WBX + mod(idir + 1,3)
+        itanb = WBX + mod(idir + 2,3)
+c
+        CHF_MULTIDO[box;i;j;k]
+          divb=half*dtbydx*(
+     &       w(CHF_IX[i+ioff;j+joff;k+koff],inorm)-
+     &       w(CHF_IX[i-ioff;j-joff;k-koff],inorm))
+          rho=W(CHF_IX[i;j;k],WRHO)
+          bi=W(CHF_IX[i;j;k],inorm)
+          bj=W(CHF_IX[i;j;k],itan)
+          bk=W(CHF_IX[i;j;k],itanb)
+          vi=W(CHF_IX[i;j;k],inorm-3)
+          vj=W(CHF_IX[i;j;k],itan-3)
+          vk=W(CHF_IX[i;j;k],itanb-3)
+c
+          whalf(CHF_IX[i;j;k],inorm-3)=whalf(CHF_IX[i;j;k],inorm-3)
+     &         +divb*bi/rho
+          whalf(CHF_IX[i;j;k],itan-3)=whalf(CHF_IX[i;j;k],itan-3)
+     &         +divb*bj/rho
+          whalf(CHF_IX[i;j;k],itanb-3)=whalf(CHF_IX[i;j;k],itanb-3)
+     &         +divb*bk/rho
+          whalf(CHF_IX[i;j;k],itan)=whalf(CHF_IX[i;j;k],itan)
+     &         +divb*vj
+          whalf(CHF_IX[i;j;k],itanb)=whalf(CHF_IX[i;j;k],itanb)
+     &         +divb*vk
+c     For pressure formulation
+c          whalf(CHF_IX[i;j;k],WPRES)=whalf(CHF_IX[i;j;k],WPRES)
+c     &         -divb*(gamma-one)*(vi*bi+vj*bj+vk*bk)
+c     For total pressure formulation
+          whalf(CHF_IX[i;j;k],WPRES)=whalf(CHF_IX[i;j;k],WPRES)
+     &         +divb*(TWO-gamma)*(vi*bi+vj*bj+vk*bk)
+c
+        CHF_ENDDO
+c
+        if(hasLo.eq.1) then
+           CHF_MULTIDO[loBox;i;j;k]
+           divb=dtbydx*(
+     &          w(CHF_IX[i+ioff;j+joff;k+koff],inorm)-
+     &          w(CHF_IX[i;j;k],inorm))
+           bi=W(CHF_IX[i;j;k],inorm)
+           bj=W(CHF_IX[i;j;k],itan)
+           bk=W(CHF_IX[i;j;k],itanb)
+           vi=W(CHF_IX[i;j;k],inorm-3)
+           vj=W(CHF_IX[i;j;k],itan-3)
+           vk=W(CHF_IX[i;j;k],itanb-3)
+c
+           whalf(CHF_IX[i;j;k],inorm-3)=whalf(CHF_IX[i;j;k],inorm-3)
+     &          +divb*bi
+           whalf(CHF_IX[i;j;k],itan-3)=whalf(CHF_IX[i;j;k],itan-3)
+     &          +divb*bj
+           whalf(CHF_IX[i;j;k],itanb-3)=whalf(CHF_IX[i;j;k],itanb-3)
+     &          +divb*bk
+           whalf(CHF_IX[i;j;k],itan)=whalf(CHF_IX[i;j;k],itan)
+     &          +divb*vj
+           whalf(CHF_IX[i;j;k],itanb)=whalf(CHF_IX[i;j;k],itanb)
+     &          +divb*vk
+c     For pressure formulation
+c           whalf(CHF_IX[i;j;k],WPRES)=whalf(CHF_IX[i;j;k],WPRES)
+c     &          -divb*(gamma-one)*(vi*bi+vj*bj+vk*bk)
+c     For total pressure formulation
+           whalf(CHF_IX[i;j;k],WPRES)=whalf(CHF_IX[i;j;k],WPRES)
+     &          +divb*(TWO-gamma)*(vi*bi+vj*bj+vk*bk)
+c
+           CHF_ENDDO
+        endif
+c
+        if(hasHi.eq.1) then
+           CHF_MULTIDO[hiBox;i;j;k]
+           divb=dtbydx*(
+     &          w(CHF_IX[i;j;k],inorm)-
+     &          w(CHF_IX[i-ioff;j-joff;k-ioff],inorm))
+           bi=W(CHF_IX[i;j;k],inorm)
+           bj=W(CHF_IX[i;j;k],itan)
+           bk=W(CHF_IX[i;j;k],itanb)
+           vi=W(CHF_IX[i;j;k],inorm-3)
+           vj=W(CHF_IX[i;j;k],itan-3)
+           vk=W(CHF_IX[i;j;k],itanb-3)
+c
+           whalf(CHF_IX[i;j;k],inorm-3)=whalf(CHF_IX[i;j;k],inorm-3)
+     &          +divb*bi
+           whalf(CHF_IX[i;j;k],itan-3)=whalf(CHF_IX[i;j;k],itan-3)
+     &          +divb*bj
+           whalf(CHF_IX[i;j;k],itanb-3)=whalf(CHF_IX[i;j;k],itanb-3)
+     &          +divb*bk
+           whalf(CHF_IX[i;j;k],itan)=whalf(CHF_IX[i;j;k],itan)
+     &          +divb*vj
+           whalf(CHF_IX[i;j;k],itanb)=whalf(CHF_IX[i;j;k],itanb)
+     &          +divb*vk
+c     For pressure formulation
+c           whalf(CHF_IX[i;j;k],WPRES)=whalf(CHF_IX[i;j;k],WPRES)
+c     &          -divb*(gamma-one)*(vi*bi+vj*bj+vk*bk)
+c     For total pressure formulation
+           whalf(CHF_IX[i;j;k],WPRES)=whalf(CHF_IX[i;j;k],WPRES)
+     &          +divb*(TWO-gamma)*(vi*bi+vj*bj+vk*bk)
+c
+           CHF_ENDDO
+        endif
+c
+        return
+        end
+
+c-----------------------------------------------------------------------
+c     Compute idir component of the gradient of the "icomp" 
+c     component of a vector
+        subroutine GRADIENTBF(
+     &     CHF_FRA[gradB],
+     &     CHF_CONST_FRA[BFLD],
+     &     CHF_CONST_REAL[dx],
+     &     CHF_CONST_INT[icomp],
+     &     CHF_CONST_INT[idir],
+     &     CHF_BOX[loBox],
+     &     CHF_CONST_INT[hasLo],
+     &     CHF_BOX[hiBox],
+     &     CHF_CONST_INT[hasHi],
+     &     CHF_BOX[box])
+
+        integer CHF_DDECL[ioff;joff;koff]
+        integer CHF_DDECL[i;j;k]
+        integer inorm, itan, itanb
+c
+        real_t divb
+        real_t rho,bi,bj,bk,vi,vj,vk
+c
+c$$$        write(6,*) 'GRADIENTBF Box', iboxlo0,iboxhi0,iboxlo1,iboxhi1
+c$$$        write(6,*) 'GRADIENTBF BF', 
+c$$$     &       iBfldlo0,iBfldhi0,iBfldlo1,iBfldhi1
+c$$$         write(6,*) 'GRADIENTBF idir', idir
+c$$$        write(6,*) 'GRADIENTBF icomp', icomp
+c$$$        write(6,*) 'GRADIENTBF dx', dx
+c$$$        write(6,*) 'GRADIENTBF has', hasHi, hasLo
+c
+        CHF_DTERM[
+        ioff = CHF_ID(0,idir);
+        joff = CHF_ID(1,idir);
+        koff = CHF_ID(2,idir)]
+c
+        CHF_MULTIDO[box;i;j;k]
+c     For idir coinciding with icomp take backward difference
+        if(idir.eq.icomp) then
+          gradB(CHF_IX[i;j;k],idir)=one/dx*(
+     &          Bfld(CHF_IX[i;j;k],icomp)-
+     &          Bfld(CHF_IX[i-ioff;j-joff;k-koff],icomp))
+        else
+          gradB(CHF_IX[i;j;k],idir)=half/dx*(
+     &       Bfld(CHF_IX[i+ioff;j+joff;k+koff],icomp)-
+     &       Bfld(CHF_IX[i-ioff;j-joff;k-koff],icomp))
+          endif
+        CHF_ENDDO
+c
+        if(hasLo.eq.1) then
+           CHF_MULTIDO[loBox;i;j;k]
+              gradB(CHF_IX[i;j;k],idir)=one/dx*(
+     &             Bfld(CHF_IX[i+ioff;j+joff;k+koff],icomp)-
+     &             Bfld(CHF_IX[i;j;k],icomp))
+           CHF_ENDDO
+        endif
+c
+        if(hasHi.eq.1) then
+           CHF_MULTIDO[hiBox;i;j;k]
+              gradB(CHF_IX[i;j;k],idir)=one/dx*(
+     &             Bfld(CHF_IX[i;j;k],icomp)-
+     &             Bfld(CHF_IX[i-ioff;j-joff;k-koff],icomp))
+           CHF_ENDDO
+        endif
+c
+        return
+        end
+
+c-----------------------------------------------------------------------
+c     Compute div(gradB)^T
+        subroutine DIVGRADBTF(
+     &     CHF_FRA[divgradBT],
+     &     CHF_CONST_FRA[gradB],
+     &     CHF_CONST_REAL[dx],
+     &     CHF_CONST_INT[idir],
+     &     CHF_BOX[loBox],
+     &     CHF_CONST_INT[hasLo],
+     &     CHF_BOX[hiBox],
+     &     CHF_CONST_INT[hasHi],
+     &     CHF_BOX[box])
+
+        integer CHF_DDECL[ioff;joff;koff]
+        integer CHF_DDECL[i;j;k]
+        integer inorm, itan, itanb
+c
+        real_t divb
+        real_t rho,bi,bj,bk,vi,vj,vk
+c
+c$$$        write(6,*) 'DIVGRADBT Box', iboxlo0,iboxhi0,iboxlo1,iboxhi1
+c$$$        write(6,*) 'DIVGRADBT BF', 
+c$$$     &       igradBlo0,igradBhi0,igradBlo1,igradBhi1
+c$$$         write(6,*) 'DIVGRADBT idir', idir
+c$$$        write(6,*) 'DIVGRADBT dx', dx
+c$$$        write(6,*) 'DIVGRADBT has', hasHi, hasLo
+c
+        inorm = idir
+        itan =  mod(idir + 1,3)
+        itanb = mod(idir + 2,3)
+c
+        CHF_DTERM[
+        ioff = CHF_ID(0,idir);
+        joff = CHF_ID(1,idir);
+        koff = CHF_ID(2,idir)]
+c
+        CHF_MULTIDO[box;i;j;k]
+c
+c     Along idir take forward difference
+          divgradBT(CHF_IX[i;j;k],idir)=
+     &       divgradBT(CHF_IX[i;j;k],idir)+one/dx*(
+     &       gradB(CHF_IX[i+ioff;j+joff;k+koff],idir)-
+     &       gradB(CHF_IX[i;j;k],idir))
+c
+          divgradBT(CHF_IX[i;j;k],itan)=
+     &       divgradBT(CHF_IX[i;j;k],itan)+half/dx*(
+     &       gradB(CHF_IX[i+ioff;j+joff;k+koff],itan)-
+     &       gradB(CHF_IX[i-ioff;j-joff;k-koff],itan))
+c
+          divgradBT(CHF_IX[i;j;k],itanb)=
+     &       divgradBT(CHF_IX[i;j;k],itanb)+half/dx*(
+     &       gradB(CHF_IX[i+ioff;j+joff;k+koff],itanb)-
+     &       gradB(CHF_IX[i-ioff;j-joff;k-koff],itanb))
+c
+        CHF_ENDDO
+c
+        if(hasLo.eq.1) then
+           CHF_MULTIDO[loBox;i;j;k]
+
+           divgradBT(CHF_IX[i;j;k],idir)=
+     &          divgradBT(CHF_IX[i;j;k],idir)+one/dx*(
+     &          gradB(CHF_IX[i+ioff;j+joff;k+koff],idir)-
+     &          gradB(CHF_IX[i;j;k],idir))
+
+           divgradBT(CHF_IX[i;j;k],itan)=
+     &          divgradBT(CHF_IX[i;j;k],idir)+one/dx*(
+     &          gradB(CHF_IX[i+ioff;j+joff;k+koff],itan)-
+     &          gradB(CHF_IX[i;j;k],itan))
+
+           divgradBT(CHF_IX[i;j;k],itanb)=
+     &          divgradBT(CHF_IX[i;j;k],itanb)+one/dx*(
+     &          gradB(CHF_IX[i+ioff;j+joff;k+koff],itanb)-
+     &          gradB(CHF_IX[i;j;k],itanb))
+
+           CHF_ENDDO
+        endif
+c
+        if(hasHi.eq.1) then
+           CHF_MULTIDO[hiBox;i;j;k]
+
+           divgradBT(CHF_IX[i;j;k],idir)=
+     &          divgradBT(CHF_IX[i;j;k],idir)+one/dx*(
+     &          gradB(CHF_IX[i;j;k],idir)-
+     &          gradB(CHF_IX[i-ioff;j-joff;k-koff],idir))
+
+           divgradBT(CHF_IX[i;j;k],itan)=
+     &          divgradBT(CHF_IX[i;j;k],idir)+one/dx*(
+     &          gradB(CHF_IX[i;j;k],itan)-
+     &          gradB(CHF_IX[i-ioff;j-joff;k-koff],itan))
+
+           divgradBT(CHF_IX[i;j;k],itanb)=
+     &          divgradBT(CHF_IX[i;j;k],itanb)+one/dx*(
+     &          gradB(CHF_IX[i;j;k],itanb)-
+     &          gradB(CHF_IX[i-ioff;j-joff;k-koff],itanb))
+
+           CHF_ENDDO
+c
+        endif
+c
+        return
+        end
+c-----------------------------------------------------------------------
+c    Filter Magnetic Field
+        subroutine BFILTERF(
+     &     CHF_FRA[BFld],
+     &     CHF_CONST_FRA[divgradBT],
+     &     CHF_CONST_REAL[dx],
+     &     CHF_CONST_REAL[dt],
+     &     CHF_BOX[box])
+c
+        integer CHF_DDECL[i;j;k]
+        integer iv
+c
+        real_t coeff
+c
+c        coeff=0.2D0*dx*dx/dt - scale it by dt because it is
+c      multiplied by dt later. 
+        coeff=0.2D0*dx*dx
+c
+        CHF_MULTIDO[box;i;j;k]
+          do iv=0,nBFldComp-1,1
+             BFld(CHF_IX[i;j;k],iv)=Bfld(CHF_IX[i;j;k],iv)
+     &            +coeff*divgradBT(CHF_IX[i;j;k],iv)
+          enddo
+        CHF_ENDDO
+c
+        return
+        end
+
+c-----------------------------------------------------------------------
+        subroutine CONSTOPLOTF(
+     &    CHF_FRA[W],
+     &    CHF_CONST_FRA[U],
+     &    CHF_BOX[box])
+
+c     Local variables
+      integer i,j,k,m
+      real_t  rho_inv, vi,vj,vk,bi,bj,bk       
+
+#include "EosCommon.fh"
+c
+        CHF_MULTIDO[box;i;j;k]
+               rho_inv=ONE/u(CHF_IX[i;j;k],0)
+               W(CHF_IX[i;j;k],0)=u(CHF_IX[i;j;k],0)
+               W(CHF_IX[i;j;k],1)=u(CHF_IX[i;j;k],1)*rho_inv
+               W(CHF_IX[i;j;k],2)=u(CHF_IX[i;j;k],2)*rho_inv
+               W(CHF_IX[i;j;k],3)=u(CHF_IX[i;j;k],3)*rho_inv
+               w(CHF_IX[i;j;k],4)=u(CHF_IX[i;j;k],4)
+               w(CHF_IX[i;j;k],5)=u(CHF_IX[i;j;k],5)
+               w(CHF_IX[i;j;k],6)=u(CHF_IX[i;j;k],6)
+               vi=W(CHF_IX[i;j;k],1)
+               vj=W(CHF_IX[i;j;k],2)
+               vk=W(CHF_IX[i;j;k],3)
+               bi=W(CHF_IX[i;j;k],4)
+               bj=W(CHF_IX[i;j;k],5)
+               bk=W(CHF_IX[i;j;k],6)
+               w(CHF_IX[i;j;k],7)=(gamma-ONE)*(u(CHF_IX[i;j;k],7)
+     &              -half*W(CHF_IX[i;j;k],0)
+     &              *(vi*vi+vj*vj+vk*vk)-half*(bi*bi+bj*bj+bk*bk))
+c
+c$$$               if(v(CHF_IX[i;j;k],8).lt.0.01D0) then
+c$$$                  write(6,*) 'WARNING: Negative Pressure',CHF_IX[i;j;k],
+c$$$     &                 v(CHF_IX[i;j;k],8)
+c$$$                  write(6,*) u(CHF_IX[i;j;k],1)
+c$$$                  write(6,*) u(CHF_IX[i;j;k],2)
+c$$$                  write(6,*) u(CHF_IX[i;j;k],3)
+c$$$                  write(6,*) u(CHF_IX[i;j;k],4)
+c$$$                  write(6,*) u(CHF_IX[i;j;k],5)
+c$$$                  write(6,*) u(CHF_IX[i;j;k],6)
+c$$$                  write(6,*) u(CHF_IX[i;j;k],7)
+c$$$                  write(6,*) u(CHF_IX[i;j;k],8)
+c$$$                  v(CHF_IX[i;j;k],8)=0.01D0
+c$$$                  u(CHF_IX[i;j;k],8)=v(CHF_IX[i;j;k],8)/(gamma-ONE)+half*v(CHF_IX[i;j;k],1)
+c$$$     &              *(vi*vi+vj*vj+vk*vk)+half*(bi*bi+bj*bj+bk*bk)
+c$$$               endif
+c
+      CHF_ENDDO
+        return
+        end
+c-----------------------------------------------------------------------
+        subroutine INTERPOLATESOLNINTIMEF(
+     &    CHF_FRA[U],
+     &    CHF_CONST_FRA[UOld],
+     &    CHF_CONST_FRA[UNew],
+     &    CHF_BOX[box],
+     &    CHF_CONST_REAL[alpha])
+
+        integer CHF_DDECL[i;j;k]
+        integer iv
+
+c
+        do iv = 0,CHF_NCOMP[UNew] - 1
+           CHF_MULTIDO[box;i;j;k]
+           U(CHF_IX[i;j;k],iv) = alpha*UNew(CHF_IX[i;j;k],iv)+
+     &          (one-alpha)*UOld(CHF_IX[i;j;k],iv)
+           CHF_ENDDO
+        enddo
+        return
+        end
+c-----------------------------------------------------------------------
+c     Incoming 1,2,3 components are velocity and not momentum
+        subroutine COMPUTETEMPERATUREF(
+     &    CHF_FRA[U],
+     &    CHF_BOX[box])
+
+#include "EosCommon.fh"
+        integer CHF_DDECL[i;j;k]
+
+c
+        CHF_MULTIDO[box;i;j;k]
+        U(CHF_IX[i;j;k],WTEMP) = 
+     &       (gamma-one)*(U(CHF_IX[i;j;k],UENG)-
+     &       (half*(U(CHF_IX[i;j;k],URHO)*
+     &       (U(CHF_IX[i;j;k],WVELX)**2+
+     &        U(CHF_IX[i;j;k],WVELY)**2+
+     &        U(CHF_IX[i;j;k],WVELZ)**2)+
+     &        U(CHF_IX[i;j;k],WBX)**2+
+     &        U(CHF_IX[i;j;k],WBY)**2+
+     &        U(CHF_IX[i;j;k],WBZ)**2)))/U(CHF_IX[i;j;k],URHO)
+        CHF_ENDDO
+      return
+      end
+c-----------------------------------------------------------------------
+c     Description: Compute velocity from momentum
+c     In: U = Conserved variables at cell centers
+c         box  = box on which velocity is computed
+c     Out: VEL = Outgoing velocity at cell centers
+c-----------------------------------------------------------------------
+        subroutine COMPUTEVELOCITYFROMMOMENTUMF(
+     &    CHF_FRA[VEL],
+     &    CHF_CONST_FRA[U],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+
+c           
+        CHF_MULTIDO[box;i;j;k]
+c
+           VEL(CHF_IX[i;j;k],0)=U(CHF_IX[i;j;k],1)/
+     &       U(CHF_IX[i;j;k],URHO)
+           VEL(CHF_IX[i;j;k],1)=U(CHF_IX[i;j;k],2)/
+     &       U(CHF_IX[i;j;k],URHO)
+           VEL(CHF_IX[i;j;k],2)=U(CHF_IX[i;j;k],3)/
+     &       U(CHF_IX[i;j;k],URHO)
+c
+        CHF_ENDDO
+c
+        return
+        end
+c-----------------------------------------------------------------------
+c     Description: Compute momentum from velocity
+c     In: U = Conserved variables at cell centers- only rho is used.
+c         MOM = Incoming velocity
+c         box  = box on which momentum is computed
+c     Out: MOM = Outgoing momentum at cell centers
+c-----------------------------------------------------------------------
+        subroutine COMPUTEMOMENTUMFROMVELOCITYF(
+     &    CHF_FRA[MOM],
+     &    CHF_CONST_FRA[U],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+c           
+        CHF_MULTIDO[box;i;j;k]
+c
+           MOM(CHF_IX[i;j;k],0)=MOM(CHF_IX[i;j;k],0)*
+     &       U(CHF_IX[i;j;k],URHO)
+           MOM(CHF_IX[i;j;k],1)=MOM(CHF_IX[i;j;k],1)*
+     &       U(CHF_IX[i;j;k],URHO)
+           MOM(CHF_IX[i;j;k],2)=MOM(CHF_IX[i;j;k],2)*
+     &       U(CHF_IX[i;j;k],URHO)
+c
+        CHF_ENDDO
+c
+        return
+        end
+c-----------------------------------------------------------------------
+c     Description: Compute temperature from conserved quantities
+c     In: U = Conserved variables at cell centers
+c         box  = box on which temperature is computed
+c     Out: Temp = Outgoing temperature at cell centers
+c-----------------------------------------------------------------------
+        subroutine COMPUTETEMPERATUREFROMCONSERVEDF(
+     &    CHF_FRA1[TEMP],
+     &    CHF_CONST_FRA[U],
+     &    CHF_BOX[box])
+#include "EosCommon.fh"
+
+        integer CHF_DDECL[i;j;k]
+
+        integer iv
+        real_t rhoInv
+c           
+        CHF_MULTIDO[box;i;j;k]
+c
+        rhoInv=one/U(CHF_IX[i;j;k],URHO)
+        TEMP(CHF_IX[i;j;k])=rhoInv/rgas*(gamma-one)*
+     &       (U(CHF_IX[i;j;k],UENG)-half*(rhoInv*(
+     &       U(CHF_IX[i;j;k],UMOMX)**2+
+     &       U(CHF_IX[i;j;k],UMOMY)**2+
+     &       U(CHF_IX[i;j;k],UMOMZ)**2)+
+     &       U(CHF_IX[i;j;k],UBX)**2+
+     &       U(CHF_IX[i;j;k],UBY)**2+
+     &       U(CHF_IX[i;j;k],UBZ)**2))
+c
+        CHF_ENDDO
+c
+        return
+        end
+c-----------------------------------------------------------------------
+c     Description: Update Rho and compute time average of Rho 
+c     In: dU = div(hyperbolic fluxes)- density component
+c         box  = box on which rho and rhoHalf are computed
+c         dx = mesh spacing
+c         dt = time step
+c         rho = incoming density which is updated
+c     Out: rhoHalf = 1/2(rho at n + rho at n+1)
+c          rho = updated density
+c-----------------------------------------------------------------------
+        subroutine COMPUTERHOHALF(
+     &    CHF_FRA1[rhoHalf],
+     &    CHF_FRA1[rho],
+     &    CHF_CONST_FRA1[dU],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_REAL[dt],
+     &    CHF_BOX[box])
+
+        integer klo,khi
+        integer kulo,kuhi
+        integer kuoldlo,kuoldhi
+
+        integer CHF_DDECL[i;j;k]
+
+        integer iv
+        real_t dtodx
+
+        dtodx=dt/dx
+c           
+        CHF_MULTIDO[box;i;j;k]
+           rhoHalf(CHF_IX[i;j;k])=rho(CHF_IX[i;j;k])+
+     &        half*dt*dU(CHF_IX[i;j;k])
+           rho(CHF_IX[i;j;k])=rho(CHF_IX[i;j;k])+
+     &        dt*dU(CHF_IX[i;j;k])
+        CHF_ENDDO
+c
+        return
+        end
+c-----------------------------------------------------------------------
+c     Description: Compute velocity at cell centers by averaging the
+c                  velocity on the faces. The face velocity comes from
+c                  solving the Riemann problem and is defined at n+1/2
+c     In: Whalf = Predicted velocity  at faces at n+1/2
+c         box  = box on which vel is computed
+c         idir = direction = 0,1,or 2
+c     Out: vel: cell centered velocity at n+1/2. This is used in
+c               momentum equation when solving the viscous terms implicitly.
+c               In particular, it is used to multiply the d(rho)/dt term
+c-----------------------------------------------------------------------
+        subroutine CELLVELOCITYBYAVERAGINGFACES(
+     &    CHF_FRA[vel],
+     &    CHF_CONST_FRA[Whalf],
+     &    CHF_CONST_INT[idir],
+     &    CHF_BOX[box])
+
+        integer CHF_DDECL[i;j;k]
+        integer CHF_DDECL[ioff;joff;koff]
+c           
+        CHF_DTERM[
+        ioff = CHF_ID(0,idir);
+        joff = CHF_ID(1,idir);
+        koff = CHF_ID(2,idir)]
+c       
+        CHF_MULTIDO[box;i;j;k]
+c
+           vel(CHF_IX[i;j;k],idir)=
+     &          half*(Whalf(CHF_IX[i+ioff;j+joff;k+koff],idir+1)+
+     &          Whalf(CHF_IX[i;j;k],idir+1))
+c           
+        CHF_ENDDO
+c
+        return
+        end
+c-----------------------------------------------------------------------
+c     Description: Compute RHS of the momentum equation used for the
+c                  implicit update. rho x du/dt = mu x div(grad)u +
+c                  RHS (=-u^(n+1/2) x d(rho)/dt - div(hyperbolic 
+c                  momentum flux)
+c                  d(rho)/dt = -div(hyperbolic flux of density)
+c     In: rhoHalf  = average density at n and n+1 (not used)
+c         box  = box on which rhs is computed
+c         dU = div hyperbolic fluxes
+c         vel = cell centered velocity at n+1/2 
+c         dx, dt = mesh spacing and time step
+c     Out: rhs = rhs for the implicit update of momentum
+c-----------------------------------------------------------------------
+        subroutine COMPUTERHSVELOCITYF(
+     &    CHF_FRA[rhs],
+     &    CHF_CONST_FRA[vel],
+     &    CHF_CONST_FRA[dU],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_REAL[dt],
+     &    CHF_BOX[box])
+
+        integer iv
+
+        integer CHF_DDECL[i;j;k]
+c           
+        CHF_MULTIDO[box;i;j;k]
+        do iv=0,2,1
+           rhs(CHF_IX[i;j;k],iv)=
+     &          -vel(CHF_IX[i;j;k],iv)*
+     &          dU(CHF_IX[i;j;k],URHO)
+     &          +dU(CHF_IX[i;j;k],UMOMX+iv)
+        enddo
+        CHF_ENDDO
+c
+        return
+        end
+c-----------------------------------------------------------------------
+c     Description: Compute energy diffusion flux which is the
+c                  diffusion term in the energy equation except 
+c                  the heat conduction term.
+c     In: Bfld, vel = Magnetic and velocity field with ghost cells 
+c                filled in including corners (by fill Patch) and others
+c                by quadCFI
+c         box  = box on which F is computed
+c         dx, dt = mesh spacing and time step
+c         idir = direction = 0,1,or 2
+c     Out: eV = energy diffusion flux
+c-----------------------------------------------------------------------
+        subroutine DIFFUSIVEENERGYFLUXF(
+     &    CHF_FRA1[eV],
+     &    CHF_CONST_FRA[Bfld],
+     &    CHF_CONST_FRA[Vel],
+     &    CHF_CONST_INT[idir],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_BOX[box])
+
+
+#include "EosCommon.fh"
+        integer i,j,k
+        integer ioff,joff,koff
+        integer inorm, itan, itanb
+        integer spacedim
+c           
+        real_t Bn, Bt, Bb
+        real_t un, ut, ub
+        real_t dundn, dutdt, dubdb
+        real_t dutdn, dubdn
+        real_t dundt, dundb
+        real_t dBtdn, dBndt, dBbdn, dBndb
+        real_t taunn, taunt, taunb
+        real_t lambda
+c
+        write(6,*) 'Box=', iboxlo0,iboxhi0,iboxlo1,iboxhi1
+        write(6,*) 'Props', eta,mu,kappa
+        write(6,*) 'EV=', iEvlo0,ieVhi0,ieVlo1,ieVhi1
+        write(6,*) 'Bfld=', iBfldlo0,iBfldhi0,iBfldlo1,iBfldhi1
+        write(6,*) 'EVB diag corners=',Bfld(CHF_DDECL[iEvlo0;ieVlo1;iEvlo2],0),
+     &       Bfld(CHF_DDECL[ieVhi0;ieVhi1;ieVhi2],0)
+        write(6,*) 'EVV diag corners=',Vel(CHF_DDECL[iEvlo0;ieVlo1;iEvlo2],0),
+     &       Vel(CHF_DDECL[ieVhi0;ieVhi1;ieVhi2],0)
+c
+        spacedim=3
+        lambda=-mu
+c
+c        CHF_DTERM[
+        ioff = CHF_ID(0,idir);
+        joff = CHF_ID(1,idir);
+        koff = CHF_ID(2,idir);
+c
+c
+        inorm = idir;
+        itan  = mod(idir + 1,spacedim)
+        itanb = mod(idir + 2,spacedim)
+c     eV = 1/S (BxJ)+ 1/Re (Tau.u)
+c     Remember to multiply by mu and eta 
+        CHF_MULTIDO[eV;i;j;k]
+c
+          Bn=half*(Bfld(CHF_IX[i;j;k],inorm)+
+     &       Bfld(CHF_IX[i-ioff;j-joff;k-koff],inorm))
+          Bt=half*(Bfld(CHF_IX[i;j;k],itan)+
+     &       Bfld(CHF_IX[i-ioff;j-joff;k-koff],itan))
+          Bb=half*(Bfld(CHF_IX[i;j;k],itanb)+
+     &       Bfld(CHF_IX[i-ioff;j-joff;k-koff],itanb))
+c
+          un=half*(Vel(CHF_IX[i;j;k],inorm)+
+     &       Vel(CHF_IX[i-ioff;j-joff;k-koff],inorm))
+          ut=half*(Vel(CHF_IX[i;j;k],itan)+
+     &       Vel(CHF_IX[i-ioff;j-joff;k-koff],itan))
+          ub=half*(Vel(CHF_IX[i;j;k],itanb)+
+     &       Vel(CHF_IX[i-ioff;j-joff;k-koff],itanb))
+c
+          dundn=Vel(CHF_IX[i;j;k],inorm)-
+     &       Vel(CHF_IX[i-ioff;j-joff;k-koff],inorm)
+c
+          dutdn=Vel(CHF_IX[i;j;k],itan)-
+     &       Vel(CHF_IX[i-ioff;j-joff;k-koff],itan)
+c
+          dubdn=Vel(CHF_IX[i;j;k],itanb)-
+     &       Vel(CHF_IX[i-ioff;j-joff;k-koff],itanb)
+c
+          dundt=0.25d0*(
+     &         Vel(CHF_IX[i+koff;j+ioff;k+joff],inorm)
+     &         -Vel(CHF_IX[i-koff;j-ioff;k-joff],inorm)
+     &         +Vel(CHF_IX[i-ioff+koff;j-joff+ioff;k-koff+joff],inorm)
+     &         -Vel(CHF_IX[i-ioff-koff;j-joff-ioff;k-koff-joff],inorm))
+c
+          dundb=0.25d0*(
+     &          Vel(CHF_IX[i+joff;j+koff;k+ioff],inorm)
+     &         -Vel(CHF_IX[i-joff;j-koff;k-ioff],inorm)
+     &         +Vel(CHF_IX[i-ioff+joff;j-joff+koff;k-koff+ioff],inorm)
+     &         -Vel(CHF_IX[i-ioff-joff;j-joff-koff;k-koff-ioff],inorm))
+c
+          dutdt=0.25d0*(
+     &         Vel(CHF_IX[i+koff;j+ioff;k+joff],itan)
+     &         -Vel(CHF_IX[i-koff;j-ioff;k-joff],itan)
+     &         +Vel(CHF_IX[i-ioff+koff;j-joff+ioff;k-koff+joff],itan)
+     &         -Vel(CHF_IX[i-ioff-koff;j-joff-ioff;k-koff-joff],itan))
+c
+          dubdb=0.25d0*(
+     &          Vel(CHF_IX[i+joff;j+koff;k+ioff],itanb)
+     &         -Vel(CHF_IX[i-joff;j-koff;k-ioff],itanb)
+     &         +Vel(CHF_IX[i-ioff+joff;j-joff+koff;k-koff+ioff],itanb)
+     &         -Vel(CHF_IX[i-ioff-joff;j-joff-koff;k-koff-ioff],itanb))
+c
+          dBtdn=Bfld(CHF_IX[i;j;k],itan)-
+     &       Bfld(CHF_IX[i-ioff;j-joff;k-koff],itan)
+c
+          dBbdn=Bfld(CHF_IX[i;j;k],itanb)-
+     &       Bfld(CHF_IX[i-ioff;j-joff;k-koff],itanb)
+c          
+          dBndt=0.25d0*(
+     &         Bfld(CHF_IX[i+koff;j+ioff;k+joff],inorm)
+     &         -Bfld(CHF_IX[i-koff;j-ioff;k-joff],inorm)
+     &         +Bfld(CHF_IX[i-ioff+koff;j-joff+ioff;k-koff+joff],inorm)
+     &         -Bfld(CHF_IX[i-ioff-koff;j-joff-ioff;k-koff-joff],inorm))
+c
+          dBndb=0.25d0*(
+     &          Bfld(CHF_IX[i+joff;j+koff;k+ioff],inorm)
+     &         -Bfld(CHF_IX[i-joff;j-koff;k-ioff],inorm)
+     &         +Bfld(CHF_IX[i-ioff+joff;j-joff+koff;k-koff+ioff],inorm)
+     &         -Bfld(CHF_IX[i-ioff-joff;j-joff-koff;k-koff-ioff],inorm))
+c
+          taunn=TWO*mu*dundn+lambda*(dundn+dutdt+dubdb)
+          taunt=mu*(dundt+dutdn)
+          taunb=mu*(dundb+dubdn)
+c
+          eV(CHF_IX[i;j;k])=eta*(Bt*(dBtdn-dBndt)+Bb*(dBbdn-dBndb))/dx
+     &         +(taunn*un+taunt*ut+taunb*ub)/dx
+          
+        CHF_ENDDO
+c
+        return
+        end
+c-----------------------------------------------------------------------
+c     Description: Compute energy diffusion flux which is the
+c                  diffusion term in the energy equation except 
+c                  the heat conduction term.
+c     In: eV = diffusion energy flux
+c         box  = box on which F is computed
+c         dx, dt = mesh spacing and time step
+c         idir = direction = 0,1,or 2
+c     Out: divEv = divergence energy diffusion flux
+c     Note: We multply 1/dx by half because we eventually want 
+c     average of divEv at n and n+1 and this routine is
+c     called twice
+c-----------------------------------------------------------------------
+        subroutine DIFFUSIVEENERGYTERMF(
+     &    CHF_FRA1[divEv],
+     &    CHF_FRA1[eV],
+     &    CHF_CONST_INT[idir],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_BOX[box])
+
+#include "EosCommon.fh"
+
+        integer CHF_DDECL[i;j;k]
+        integer CHF_DDECL[ioff;joff;koff]
+        CHF_DTERM[
+        ioff = CHF_ID(0,idir);
+        joff = CHF_ID(1,idir);
+        koff = CHF_ID(2,idir)]
+
+c
+        CHF_MULTIDO[box;i;j;k]
+         divEv(CHF_IX[i;j;k]) = divEv(CHF_IX[i;j;k])+
+     &        half/dx * (eV(CHF_IX[i+ioff;j+joff;k+koff])
+     &        - eV(CHF_IX[i     ;j     ;k     ]))
+        CHF_ENDDO
+        return
+        end
+c-----------------------------------------------------------------------
+c     Description: Compute RHS of the temperature equation used for the
+c                  implicit update. 
+c     In: UNew = conserved variables at n+1 - all except energy updated
+c         UOld = conserved variables at n
+c         dU = -div.F^H (-divergence of Hyperbolic fluxes)
+c         box  = box on which rhs is computed
+c         dx, dt = mesh spacing and time step
+c     Out: rhs = rhs for the implicit update of temperature equation
+c-----------------------------------------------------------------------
+        subroutine RHSTEMPERATURE(
+     &    CHF_FRA1[rhs],
+     &    CHF_CONST_FRA[UNew],
+     &    CHF_CONST_FRA[UOld],
+     &    CHF_CONST_FRA[dU],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_REAL[dt],
+     &    CHF_BOX[box])
+#include "EosCommon.fh"
+c
+        integer CHF_DDECL[i;j;k]
+        real_t mage, ke
+        real_t temp, rhoInv
+c
+        CHF_MULTIDO[box;i;j;k]
+c
+        mage=half*(UOld(CHF_IX[i;j;k],UBX)**2+
+     &       UOld(CHF_IX[i;j;k],UBY)**2+
+     &       UOld(CHF_IX[i;j;k],UBZ)**2)
+        ke=half*(UOld(CHF_IX[i;j;k],UMOMX)**2+
+     &       UOld(CHF_IX[i;j;k],UMOMY)**2+
+     &       UOld(CHF_IX[i;j;k],UMOMZ)**2)/Uold(CHF_IX[i;j;k],URHO)
+        rhoInv=one/UOld(CHF_IX[i;j;k],URHO)
+        temp=rhoInv/rgas*(gamma-one)*
+     &       (UOld(CHF_IX[i;j;k],UENG)-ke-mage)
+        mage=half*(UNew(CHF_IX[i;j;k],UBX)**2+
+     &       UNew(CHF_IX[i;j;k],UBY)**2+
+     &       UNew(CHF_IX[i;j;k],UBZ)**2)-mage
+        ke=half*(UNew(CHF_IX[i;j;k],UMOMX)**2+
+     &       UNew(CHF_IX[i;j;k],UMOMY)**2+
+     &       UNew(CHF_IX[i;j;k],UMOMZ)**2)/Uold(CHF_IX[i;j;k],URHO)-ke
+c
+c
+         rhs(CHF_IX[i;j;k]) = -(mage+ke)/dt-
+     &       temp*dU(CHF_IX[i;j;k],URHO)/(gamma-one)+
+     &       dU(CHF_IX[i;j;k],UENG)
+        CHF_ENDDO
+        
+        return
+        end
+

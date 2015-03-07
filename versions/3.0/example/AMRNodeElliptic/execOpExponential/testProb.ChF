@@ -1,0 +1,99 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+c     =================================================-
+      subroutine INITEXP(
+     $     CHF_CONST_REAL[sigin],
+     $     CHF_REALVECT[cenin])
+      REAL_T sigma, CHF_DDECL[xcen; ycen; zcen]
+      common / cbexp / sigma, CHF_DDECL[xcen; ycen; zcen]
+
+      sigma = sigin
+      CHF_DTERM[
+      xcen = cenin(0) ;
+      ycen = cenin(1) ;
+      zcen = cenin(2) ]
+
+      return
+      end
+
+
+c     =================================================-
+      subroutine GETPHINODEEXP(
+     &     CHF_FRA[phi],
+     $     CHF_BOX[box],
+     $     CHF_CONST_REAL[dx])
+
+      integer CHF_DDECL[i; j; k]
+      REAL_T CHF_DDECL[x; y; z]
+      REAL_T c, rad2
+      integer nv
+      REAL_T sigma, CHF_DDECL[xcen; ycen; zcen]
+      common / cbexp / sigma, CHF_DDECL[xcen; ycen; zcen]
+
+      c = -one / (two * sigma)**2
+      do nv = 0, CHF_NCOMP[phi] - 1
+
+          CHF_MULTIDO[box; i; j; k]
+
+              CHF_DTERM[
+              x = dx*i - xcen ;
+              y = dx*j - ycen ;
+              z = dx*k - zcen ]
+
+              CHF_DTERM[ rad2 = x * x ;
+     &             + y * y ;
+     &             + z * z ]
+
+              phi(CHF_IX[i; j; k], nv) = exp(c * rad2)
+
+          CHF_ENDDO
+      enddo
+
+      return
+      end
+
+
+c     =================================================-
+      subroutine GETPHINODELAP(
+     &     CHF_FRA[lap],
+     $     CHF_BOX[box],
+     $     CHF_CONST_REAL[dx])
+
+      integer CHF_DDECL[i; j; k]
+      REAL_T CHF_DDECL[x; y; z]
+      REAL_T c, cc, rad2, phi
+      integer nv
+      REAL_T sigma, CHF_DDECL[xcen; ycen; zcen]
+      common / cbexp / sigma, CHF_DDECL[xcen; ycen; zcen]
+
+      c = -one / (two * sigma)**2
+      cc = (two * c)**2
+      do nv = 0, CHF_NCOMP[lap] - 1
+
+          CHF_MULTIDO[box; i; j; k]
+
+              CHF_DTERM[
+              x = dx*i - xcen ;
+              y = dx*j - ycen ;
+              z = dx*k - zcen ]
+
+              CHF_DTERM[ rad2 = x * x ;
+     &             + y * y ;
+     &             + z * z ]
+
+              phi = exp(c * rad2)
+
+              lap(CHF_IX[i; j; k], nv) =
+     &             phi * (cc * rad2 + two * c * CH_SPACEDIM)
+
+          CHF_ENDDO
+      enddo
+
+      return
+      end

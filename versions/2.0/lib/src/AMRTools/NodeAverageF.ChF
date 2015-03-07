@@ -1,0 +1,197 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+c     petermc added 5 Apr 2002
+#include "CONSTANTS.H"
+
+C=======================================================
+C     subroutine NODEAVERAGE
+C     Average node-centered data from fine grid to coarse grid.
+C     => inputs, <= outputs
+C     coarse   <=> data on coarse grid, is overwritten on b
+C     fine      => data on fine grid
+C     b         => box containing indices of coarse nodes 
+C                  where we compute the average
+C     ref_ratio => refinement ratio
+C     weight    => weight array of 1 component defined on the box
+C                  ref_ratio/2 * [[-1]^D : [1]^D].
+C                  weight(foff, 0) is the weight of the the fine
+C                  point ref_ratio * crse + foff in averaging to
+C                  crse, where foff is in [[-1]^D : [1]^D].
+C
+C     Warning:  the domain of fine must include all points in
+C        ref_ratio * crse + ref_ratio/2 * [[-1]^D : [1]^D]
+C     for every point crse in b.
+C
+C     adapted from AVERAGE
+C     petermc, Dec 21, 2000
+C=======================================================
+      subroutine NODEAVERAGE( 
+     &    CHF_FRA[coarse],
+     &    CHF_CONST_FRA[fine],
+     &    CHF_BOX[b],
+     &    CHF_CONST_INT[ref_ratio],
+     &    CHF_CONST_FRA[weight])
+
+c weight is on box [ref_ratio/2 * [-1]^D : ref_ratio/2 * [1]^D]
+
+      integer var
+      integer CHF_DDECL[icrse; jcrse; kcrse]
+      integer CHF_DDECL[ifine; jfine; kfine]
+      integer CHF_DDECL[ii; jj; kk]
+      REAL_T csum
+
+      do var = 0, CHF_NCOMP[coarse] - 1
+c var:  index of component
+
+         CHF_MULTIDO[ b; icrse; jcrse; kcrse ]
+
+            csum = zero
+              
+            CHF_MULTIDO[ weight; ii; jj; kk ]
+
+c weight is on box  ref_ratio/2 * [[-1]^D : [1]^D]
+c so ii, jj, kk are in [-ref_ratio/2 : ref_ratio/2]
+
+               CHF_DTERM[
+               ifine = icrse*ref_ratio + ii ;
+               jfine = jcrse*ref_ratio + jj ;
+               kfine = kcrse*ref_ratio + kk ]
+
+               csum = csum + weight( CHF_IX[ii; jj; kk], 0) *
+     &                 fine( CHF_IX[ifine; jfine; kfine], var )
+               
+            CHF_ENDDO
+
+
+            coarse( CHF_IX[icrse; jcrse; kcrse], var ) = csum
+
+         CHF_ENDDO
+
+      end do
+
+      return
+      end
+
+
+
+C=======================================================
+C     subroutine NODEAVERAGEPOINT
+C     Average node-centered data from fine grid to coarse grid,
+C     at one point.
+C     => inputs, <= outputs
+C     coarse   <=> data on coarse grid, is overwritten on b
+C     fine      => data on fine grid
+C     pcrse     => index of coarse node
+C                  where we compute the average
+C     ref_ratio => refinement ratio
+C     weight    => weight array of 1 component defined on the box
+C                  ref_ratio/2 * [[-1]^D : [1]^D].
+C                  weight(foff, 0) is the weight of the the fine
+C                  point ref_ratio * crse + foff in averaging to
+C                  crse, where foff is in [[-1]^D : [1]^D].
+C
+C     Warning:  the domain of fine must include all points in
+C        ref_ratio * pcrse + ref_ratio/2 * [[-1]^D : [1]^D]
+C
+C     adapted from NODEAVERAGE
+C     petermc, 23 Jul 2003
+C=======================================================
+      subroutine NODEAVERAGEPOINT(
+     &    CHF_FRA[coarse],
+     &    CHF_CONST_FRA[fine],
+     &    CHF_CONST_INTVECT[pcrse],
+     &    CHF_CONST_INT[ref_ratio],
+     &    CHF_CONST_FRA[weight])
+
+c weight is on box [ref_ratio/2 * [-1]^D : ref_ratio/2 * [1]^D]
+
+      integer var
+      integer CHF_DDECL[ifine; jfine; kfine]
+      integer CHF_DDECL[ii; jj; kk]
+      REAL_T csum, weightpt, finept
+
+      do var = 0, CHF_NCOMP[coarse] - 1
+c var:  index of component
+
+         csum = zero
+              
+         CHF_MULTIDO[ weight; ii; jj; kk ]
+
+c weight is on box  ref_ratio/2 * [[-1]^D : [1]^D]
+c so ii, jj, kk are in [-ref_ratio/2 : ref_ratio/2]
+
+            CHF_DTERM[
+            ifine = pcrse(0)*ref_ratio + ii ;
+            jfine = pcrse(1)*ref_ratio + jj ;
+            kfine = pcrse(2)*ref_ratio + kk ]
+
+            weightpt = weight( CHF_IX[ii; jj; kk], 0)
+            finept = fine( CHF_IX[ifine; jfine; kfine], var )
+
+            csum = csum + weightpt*finept
+               
+         CHF_ENDDO
+
+
+         coarse( CHF_IX[pcrse(0); pcrse(1); pcrse(2)], var ) = csum
+
+      end do
+
+      return
+      end
+
+
+
+C=======================================================
+C     subroutine NODEAVERAGE_GETWEIGHTS
+C     Get the weight array to be used in NODEAVERAGE
+C     => inputs, <= outputs
+C     weight   <=  weight array of 1 component defined on the box
+C                  ref_ratio/2 * [[-1]^D : [1]^D].
+C                  weight(foff, 0) is the weight of the the fine
+C                  point ref_ratio * crse + foff in averaging to
+C                  crse, where foff is in [[-1]^D : [1]^D].
+C     ref_ratio => refinement ratio
+C=======================================================
+      subroutine NODEAVERAGE_GETWEIGHTS( 
+     &    CHF_FRA[weight],
+     &    CHF_CONST_INT[ref_ratio])
+
+      integer ext, nxtrm
+      integer CHF_DDECL[ii; jj; kk]
+      REAL_T ref_scale
+
+c ext is the max distance of fine nodes used from coarse nodes
+      ext = ref_ratio / 2
+      ref_scale = one / (ref_ratio**CH_SPACEDIM)
+
+c cell-centered:  just add up fine(subcells)/#(subcells).
+c node-centered:  if refinement ratio is 2, then
+c     8 for self, 4 if face, 2 if edge, 1 if corner connecting,
+c     and then divide this sum by total weight.
+c     generally:
+c     weight is ref_scale * half**e,
+c     where e is number of components at extremes,
+c     meaning abs == ref_ratio/2.
+c     this is tensor product of the trapezoidal rule.
+
+c wt is on box [ref_ratio/2 * [-1]^D : ref_ratio/2 * [1]^D]
+
+      CHF_MULTIDO[ weight; ii; jj; kk ]
+
+c nxtrm is the number of coordinates ii, jj, kk that lie at the extremes.
+         nxtrm = 0
+         CHF_DTERM[
+         if (iabs(ii) .eq. ext) nxtrm = nxtrm + 1 ;
+         if (iabs(jj) .eq. ext) nxtrm = nxtrm + 1 ;
+         if (iabs(kk) .eq. ext) nxtrm = nxtrm + 1 ]
+      
+         weight( CHF_IX[ii; jj; kk], 0) = ref_scale * half**nxtrm
+
+      CHF_ENDDO
+
+      return
+      end

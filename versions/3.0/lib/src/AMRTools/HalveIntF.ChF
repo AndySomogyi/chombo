@@ -1,0 +1,185 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+!=======================================================
+!     subroutine HALVEINTFACES
+!     Divide arr by two on faces of bxsupp;
+!     also by four on edges and by eight on corners.
+!
+!     => inputs,  <= outputs
+!     arr <=> NODE-centered integer array
+!     bxsupp => NODE-centered box of nodes on which to halve on faces
+!
+!     petermc, 12 Dec 2005
+      subroutine halveintfaces(
+     &     CHF_FIA[arr],
+     &     CHF_BOX[bxsupp])
+      integer CHF_AUTODECL[i]
+      integer CHF_AUTODECL[iarmin]
+      integer CHF_AUTODECL[iarmax]
+      integer CHF_AUTODECL[ibxmin]
+      integer CHF_AUTODECL[ibxmax]
+      integer CHF_AUTODECL[imin]
+      integer CHF_AUTODECL[imax]
+      integer var
+
+      CHF_DTERM
+      iarmin0 = CHF_LBOUND[arr; 0]
+      iarmax0 = CHF_UBOUND[arr; 0];
+      iarmin1 = CHF_LBOUND[arr; 1]
+      iarmax1 = CHF_UBOUND[arr; 1];
+      iarmin2 = CHF_LBOUND[arr; 2]
+      iarmax2 = CHF_UBOUND[arr; 2];
+      iarmin3 = CHF_LBOUND[arr; 3]
+      iarmax3 = CHF_UBOUND[arr; 3];
+      iarmin4 = CHF_LBOUND[arr; 4]
+      iarmax4 = CHF_UBOUND[arr; 4];
+      iarmin5 = CHF_LBOUND[arr; 5]
+      iarmax5 = CHF_UBOUND[arr; 5] ]
+
+      CHF_DTERM
+      ibxmin0 = CHF_LBOUND[bxsupp; 0]
+      ibxmax0 = CHF_UBOUND[bxsupp; 0];
+      ibxmin1 = CHF_LBOUND[bxsupp; 1]
+      ibxmax1 = CHF_UBOUND[bxsupp; 1];
+      ibxmin2 = CHF_LBOUND[bxsupp; 2]
+      ibxmax2 = CHF_UBOUND[bxsupp; 2];
+      ibxmin3 = CHF_LBOUND[bxsupp; 3]
+      ibxmax3 = CHF_UBOUND[bxsupp; 3];
+      ibxmin4 = CHF_LBOUND[bxsupp; 4]
+      ibxmax4 = CHF_UBOUND[bxsupp; 4];
+      ibxmin5 = CHF_LBOUND[bxsupp; 5]
+      ibxmax5 = CHF_UBOUND[bxsupp; 5] ]
+
+
+
+      CHF_DTERM[
+      imin0 = max(iarmin0, ibxmin0)
+      imax0 = min(iarmax0, ibxmax0);
+      imin1 = max(iarmin1, ibxmin1)
+      imax1 = min(iarmax1, ibxmax1);
+      imin2 = max(iarmin2, ibxmin2)
+      imax2 = min(iarmax2, ibxmax2);
+      imin3 = max(iarmin3, ibxmin3)
+      imax3 = min(iarmax3, ibxmax3);
+      imin4 = max(iarmin4, ibxmin4)
+      imax4 = min(iarmax4, ibxmax4);
+      imin5 = max(iarmin5, ibxmin5)
+      imax5 = min(iarmax5, ibxmax5) ]
+
+
+
+      do var = 0, CHF_NCOMP[arr]-1
+
+!     check that ibxmin is in range iarmin : iarmax
+         i0 = ibxmin0
+         if (iarmin0 .le. i0 .and. i0 .le. iarmax0) then
+#if CH_SPACEDIM>=3
+            do i2 = imin2, imax2
+#endif
+#if CH_SPACEDIM>=2
+               do i1 = imin1, imax1
+#endif
+                  arr(CHF_AUTOIX[i], var) =
+     &                 arr(CHF_AUTOIX[i], var) / 2
+#if CH_SPACEDIM>=2
+               enddo
+#endif
+#if CH_SPACEDIM>=3
+            enddo
+#endif
+         endif
+
+!     check that ibxmax is in range iarmin : iarmax
+         i0 = ibxmax0
+         if (iarmin0 .le. i0 .and. i0 .le. iarmax0) then
+#if CH_SPACEDIM>=3
+            do i2 = imin2, imax2
+#endif
+#if CH_SPACEDIM>=2
+               do i1 = imin1, imax1
+#endif
+                  arr(CHF_AUTOIX[i], var) =
+     &                 arr(CHF_AUTOIX[i], var) / 2
+#if CH_SPACEDIM>=2
+               enddo
+#endif
+#if CH_SPACEDIM>=3
+            enddo
+#endif
+         endif
+
+#if CH_SPACEDIM>=2
+
+!     check that jbxmin is in range jarmin : jarmax
+         i1 = ibxmin1
+         if (iarmin1 .le. i1 .and. i1 .le. iarmax1) then
+#if CH_SPACEDIM>=3
+            do i2 = imin2, imax2
+#endif
+               do i0 = imin0, imax0
+                  arr(CHF_AUTOIX[i], var) =
+     &                 arr(CHF_AUTOIX[i], var) / 2
+               enddo
+#if CH_SPACEDIM>=3
+            enddo
+#endif
+         endif
+
+!     check that jbxmax is in range jarmin : jarmax
+         i1 = ibxmax1
+         if (iarmin1 .le. i1 .and. i1 .le. iarmax1) then
+#if CH_SPACEDIM>=3
+            do i2 = imin2, imax2
+#endif
+               do i0 = imin0, imax0
+                  arr(CHF_AUTOIX[i], var) =
+     &                 arr(CHF_AUTOIX[i], var) / 2
+               enddo
+#if CH_SPACEDIM>=3
+            enddo
+#endif
+         endif
+
+#endif
+
+#if CH_SPACEDIM>=3
+
+!     check that kbxmin is in range karmin : karmax
+         i2 = ibxmin2
+         if (iarmin2 .le. i2 .and. i2 .le. iarmax2) then
+            do i1 = imin1, imax1
+               do i0 = imin0, imax0
+                  arr(CHF_AUTOIX[i], var) =
+     &                 arr(CHF_AUTOIX[i], var) / 2
+               enddo
+            enddo
+         endif
+
+!     check that kbxmax is in range karmin : karmax
+         i2 = ibxmax2
+         if (iarmin2 .le. i2 .and. i2 .le. iarmax2) then
+            do i1 = imin1, imax1
+               do i0 = imin0, imax0
+                  arr(CHF_AUTOIX[i], var) =
+     &                 arr(CHF_AUTOIX[i], var) / 2
+               enddo
+            enddo
+         endif
+
+#endif
+
+c  (dfm 5/28/08) -- haven't extended this for DIM > 3
+#if CH_SPACEDIM>3
+         call MAYDAY_ERROR()
+#endif
+
+      enddo
+
+      return
+      end

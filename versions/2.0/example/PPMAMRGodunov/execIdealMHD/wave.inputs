@@ -1,0 +1,62 @@
+# Set which problem to solve
+godunov.problem = wave
+
+#godunov.alpha = 5
+godunov.alpha = 5
+godunov.pdir = 7
+godunov.kratio = 1
+godunov.waveNumber = 1
+godunov.pertAmplitude = 0.001
+godunov.domain_length = 2.0
+
+godunov.gamma = 1.667
+godunov.rgas = 1.0
+godunov.wmol = 1.0
+
+godunov.verbosity = 3
+
+godunov.max_step = 10 
+godunov.max_time = 1000.
+
+godunov.num_cells = 64 64 8
+godunov.is_periodic = 1 1 1 
+godunov.max_level = 0
+#godunov.ref_ratio = 4 4 4 2 2
+godunov.ref_ratio = 2 2 2 2 2 2 2
+
+godunov.regrid_interval = 4000 4000 4000 4 4 4 4
+godunov.tag_buffer_size = 2
+
+godunov.refine_thresh = 0.000075
+#godunov.refine_thresh = 20
+
+godunov.block_factor = 4
+godunov.max_grid_size = 512
+godunov.fill_ratio = 0.85
+
+godunov.normal_predictor = PPM
+
+godunov.use_fourth_order_slopes = 1
+godunov.use_prim_limiting = 1
+godunov.use_char_limiting = 0
+godunov.use_flattening = 0
+
+godunov.use_artificial_viscosity = 0
+godunov.artificial_viscosity = 0.1
+
+godunov.filter_BField = 0
+godunov.project_BField = 1
+
+godunov.plot_interval = 1
+godunov.plot_prefix = wave.
+godunov.checkpoint_interval = 100
+
+godunov.chk_prefix = check.
+
+#godunov.restart_file = check50.2d.hdf5
+
+godunov.cfl = 0.7
+godunov.initial_cfl = 0.7
+
+godunov.max_dt_growth = 1.0
+godunov.dt_tolerance_factor = 1.0

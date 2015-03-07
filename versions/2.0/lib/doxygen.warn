@@ -1,0 +1,206 @@
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/TreeIntVectSet.H:173: Command @see not allowed in single-line C++ comment! Ignoring.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/EllipticDesign/AMRPoissonOp.H:148: Warning: end of group without matching begin.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/EllipticDesign/ResistivityOp.H:115: Warning: end of group without matching begin.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/EllipticDesign/VCAMRPoissonOp.H:140: Warning: end of group without matching begin.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/EllipticDesign/ViscousTensorOp.H:113: Warning: end of group without matching begin.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/LevelData.H:258: Warning: member aliasLevelData: ignoring the detailed description found here, since another one was found at line 23 of file /home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/LevelData.H!
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/LevelData.H:257: Warning: member aliasLevelData: ignoring the brief description found here, since another one was found at line 21 of file /home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/LevelData.H!
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/BitSet.H:133: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1599: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/BoxLayout.H:508: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/BoxLayout.H:509: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Copier.H:164: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/DataIndex.H:63: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/DataIndex.H:64: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/DataIndex.H:65: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/DataIndex.H:66: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/DataIndex.H:97: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/DataIndex.H:98: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/DataIndex.H:99: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/DataIndex.H:100: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/DataIterator.H:172: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/DataIterator.H:173: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/DenseIntVectSet.H:231: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/DisjointBoxLayout.H:34: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/IntVect.H:627: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/IntVect.H:629: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/IntVect.H:630: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/IntVect.H:631: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/IntVect.H:632: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/IntVectSet.H:48: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/LayoutData.H:48: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/LayoutIterator.H:86: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/LevelDataI.H:376: Warning: no matching class member found for
+  template < T >
+  void LevelData< T >::apply(void(*a_Function)(const Box &box, int comps, T &t))
+Possible candidates:
+  virtual void LevelData< T >::apply(void(*a_Function)(const Box &, int, T &))
+  virtual void LevelData< T >::apply(const ApplyFunctor &)
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/ListImplem.H:123: Warning: no matching class member found for
+  template < T >
+  void ListLink::swap(ListLink< T > *a)
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/ParmParse.H:2836: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/ParmParse.H:4133: Warning: documented function `bool ParmParse::isInteger' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/ParmParse.H:4146: Warning: documented function `bool ParmParse::isUnsigned' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/ParmParse.H:4156: Warning: documented function `int ParmParse::isDouble' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/ParmParse.H:4166: Warning: documented function `bool ParmParse::isBool' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/ProblemDomain.H:612: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/RealVect.H:439: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/RefCountedPtr.H:110: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/TreeIntVectSet.H:240: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/TreeIntVectSet.H:280: Warning: documented function `struct' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/TreeIntVectSet.H:281: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/NodeBC.H:44: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRElliptic/AMRLevelMG.H:40: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRElliptic/AMRSolver.H:45: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRElliptic/Extrap0thOrderBC.H:23: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRElliptic/ExtrapBC.H:32: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRElliptic/GhostBC.H:43: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRElliptic/HOExtrapBC.H:23: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRElliptic/PoissonBC.H:38: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRElliptic/PoissonBC.H:114: Warning: documented function `class' was not defined.
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/CHOMBO_VERSION.H:25: Warning: found </b> tag without matching <b>
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/CHOMBO_VERSION.H:25: Warning: found </b> tag without matching <b>
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/AMRIO.H:509: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/AMRIO.H:539: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/AMRIO.H:553: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1273: Warning: Found unknown command `\_cell'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/NodeSetOperations.H:301: Warning: end of comment block while expecting command </code>
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/NodeSetOperations.H:301: Warning: end of comment block while expecting command </code>
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/NodeSetOperations.H:301: Warning: end of comment block while expecting command </code>
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/NodeSetOperations.H:301: Warning: end of comment block while expecting command </code>
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/NodeSetOperations.H:635: Warning: end of comment block while expecting command </code>
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/NodeSetOperations.H:635: Warning: end of comment block while expecting command </code>
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/NodeSetOperations.H:635: Warning: end of comment block while expecting command </code>
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/NodeSetOperations.H:635: Warning: end of comment block while expecting command </code>
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/parstream.H:22: Warning: Unsupported html tag <basename> found
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/parstream.H:22: Warning: Unsupported html tag <basename> found
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/parstream.H:43: Warning: Unsupported html tag <pout_basename> found
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/parstream.H:44: Warning: Unsupported html tag <procid> found
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRElliptic/AMRSolver.H:94: Warning: Found unknown command `\dx'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRElliptic/AMRSolver.H:95: Warning: Found unknown command `\dx'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRElliptic/AMRSolver.H:133: Warning: Found unknown command `\dx'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRElliptic/AMRSolver.H:134: Warning: Found unknown command `\dx'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/BaseFab.H:79: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/BaseFab.H:154: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/BaseFab.H:231: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/BaseFab.H:280: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/BaseFab.H:294: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/BaseFab.H:392: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/BaseFab.H:434: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/BaseFab.H:79: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/BaseFab.H:154: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/BaseFab.H:231: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/BaseFab.H:280: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/BaseFab.H:294: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/BaseFab.H:392: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/BaseFab.H:434: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:552: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:737: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:845: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1571: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1539: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:552: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:737: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:845: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:896: Warning: Found unknown command `\_index'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:897: Warning: Found unknown command `\_cells'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:897: Warning: Found unknown command `\_cells'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1071: Warning: Found unknown command `\_halfs'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1071: Warning: Found unknown command `\_halfs'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1262: Warning: Found unknown command `\_cell'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1306: Warning: Found unknown command `\_cell'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1308: Warning: Found unknown command `\_cell'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1319: Warning: Found unknown command `\_cell'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1321: Warning: Found unknown command `\_cell'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1341: Warning: Found unknown command `\_cell'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1343: Warning: Found unknown command `\_cell'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1508: Warning: Found unknown command `\_pnt'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1512: Warning: Found unknown command `\_pnt'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1513: Warning: Found unknown command `\_pnt'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1514: Warning: Found unknown command `\_pnt'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1515: Warning: Found unknown command `\_pnt'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1571: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1273: Warning: Found unknown command `\_cell'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:1539: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/CFStencil.H:67: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/CFStencil.H:67: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/CoarseAverage.H:51: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/CoarseAverage.H:68: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/CoarseAverage.H:84: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/CoarseAverage.H:89: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/CoarseAverage.H:105: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/CoarseAverage.H:111: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/CoarseAverage.H:126: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/CoarseAverage.H:144: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/CoarseAverage.H:148: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/ExtrapFillPatch.H:129: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/ExtrapFillPatch.H:155: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/ExtrapFillPatch.H:183: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/ExtrapFillPatch.H:188: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/ExtrapFillPatch.H:214: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/ExtrapFillPatch.H:219: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/ExtrapFillPatch.H:234: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/ExtrapFillPatch.H:245: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/ExtrapFillPatch.H:252: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/FArrayBox.H:38: Warning: Found unknown command `\_SPACEDIM'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/FArrayBox.H:40: Warning: Found unknown command `\_USE'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/FArrayBox.H:40: Warning: Found unknown command `\_FLOAT'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/FArrayBox.H:40: Warning: Found unknown command `\_USE'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/FArrayBox.H:40: Warning: Found unknown command `\_DOUBLE'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/FineInterp.H:52: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/FineInterp.H:69: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/FineInterp.H:84: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/FineInterp.H:90: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/FineInterp.H:104: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/FineInterp.H:110: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/FineInterp.H:125: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/FineInterp.H:141: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/FineInterp.H:145: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/FluxBox.H:210: Warning: Found unknown command `\rm'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/FluxBox.H:210: Warning: Found unknown command `\rm'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:33: Warning: Found unknown command `\_SPACEDIM'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:35: Warning: Found unknown command `\_SPACEDIM'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:87: Warning: Found unknown command `\_DECL'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Box.H:88: Warning: Found unknown command `\_SPACEDIM'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/IntVectSet.H:101: Warning: expected whitespace after b command
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/IntVectSet.H:105: Warning: expected whitespace after b command
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/IntVectSet.H:323: Warning: end of comment block while expecting command </b>
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/IntVectSet.H:323: Warning: end of comment block while expecting command </b>
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/IVSFAB.H:36: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/IVSFAB.H:90: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/IVSFAB.H:98: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/List.H:305: Warning: Found unknown command `\rm'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/List.H:305: Warning: Found unknown command `\rm'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/EllipticDesign/MultilevelLinearOp.H:30: Warning: Unsupported html tag <t> found
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/ParmParse.H:2788: Warning: Unsupported html tag <filename> found
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/ParmParse.H:2796: Warning: Unsupported html tag <value> found
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/PiecewiseLinearFillPatch.H:142: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/PiecewiseLinearFillPatch.H:162: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/PiecewiseLinearFillPatch.H:183: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/PiecewiseLinearFillPatch.H:191: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/PiecewiseLinearFillPatch.H:209: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/PiecewiseLinearFillPatch.H:217: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/PiecewiseLinearFillPatch.H:235: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/PiecewiseLinearFillPatch.H:252: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/PiecewiseLinearFillPatch.H:262: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Pool.H:66: Warning: The following parameters of Pool::Pool(int a_ptrSize, const char *a_name="unnamed", int a_poolSize=100, int a_alignment=sizeof(int)) are not documented:
+  parameter a_alignment
+
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/QuadCFStencil.H:38: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/QuadCFStencil.H:147: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/QuadCFStencil.H:38: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/AMRTools/QuadCFStencil.H:147: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Vector.H:147: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Vector.H:149: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Vector.H:192: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Vector.H:195: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Vector.H:212: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Vector.H:214: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Vector.H:216: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Vector.H:236: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Vector.H:238: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Vector.H:240: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Vector.H:286: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/Vector.H:288: Warning: Found unknown command `\bf'
+/home/karloff/users/bvs/tmp/Chombo/lib/src/BoxTools/FORT_PROTO.H:41: Warning: Found unknown command `\tt'

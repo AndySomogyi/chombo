@@ -1,0 +1,174 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+!     -----------------------------------------------------------------
+!     subroutine APPLYLAP
+!
+!     Computes the 1-dimensional 2nd-order approximation of d^2\phi/dx^2
+!     in the specified direction and accumulates into the destination arg,
+!     computing and storing the fluxes as a side-effect.
+!
+!     INPUTS/OUTPUTS:
+!     lofphi   <=>  laplacian of phi to be incremented by this subroutine.
+!     flux     <=   flux in direction idir thru the face to the left
+!     phi       =>  phi
+!     region    =>  index range over which Laplacian is computed.
+!     fluxregion=>  index range over which flux is computed.
+!     dx        =>  cell spacing
+!     idir      =>  direction
+!
+!     Warning: phi, lofphi, flux must have the same number
+!     of components and span region.  Phi needs one more cell on
+!     all sides. Flux is asumed to be shifted by -1/2 to have
+!     cell-centered alignment.  This implies that fluxregion has one
+!     more cell in the idir direction than region.
+!
+!
+!     PC: copied from PoissonOpF.ChF , 7/19/2002.
+!     ------------------------------------------------------------------
+      subroutine APPLYLAP(
+     &     CHF_FRA[lofphi],
+     &     CHF_FRA[flux],
+     &     CHF_CONST_FRA[phi],
+     &     CHF_BOX[region],
+     &     CHF_BOX[fluxregion],
+     &     CHF_CONST_REAL[dx],
+     &     CHF_CONST_INT[idir])
+
+
+      !XXX -- unused var
+      !XXXREAL_T lphi
+      REAL_T dxinv
+      integer n,ncomp
+
+      integer CHF_DDECL[ii,i;jj,j;kk,k]
+
+      ncomp = CHF_NCOMP[phi]
+      if ((ncomp .ne. CHF_NCOMP[lofphi]).or.(ncomp.ne.CHF_NCOMP[flux])) then
+!         print*, 'phi, flux, or lOfPhi are incompatible'
+!         stop
+         call MAYDAYERROR()
+      endif
+
+      dxinv = one/dx
+      CHF_DTERM[
+      ii = CHF_ID(idir, 0);
+      jj = CHF_ID(idir, 1);
+      kk = CHF_ID(idir, 2)]
+      do n = 0, ncomp-1
+         CHF_MULTIDO[fluxregion; i; j; k]
+
+             flux(CHF_IX[i;j;k],n) =
+     &           ( -phi(CHF_IX[i   ;j   ;k   ],n)
+     &           + (phi(CHF_IX[i-ii;j-jj;k-kk],n))
+     &           )*dxinv
+
+         CHF_ENDDO
+
+         CHF_MULTIDO[region; i; j; k]
+
+            lofphi(CHF_IX[i;j;k],n) =
+     &           lofphi(CHF_IX[i;j;k],n) -
+     &           ( (flux(CHF_IX[i+ii;j+jj;k+kk],n)
+     &            - flux(CHF_IX[i   ;j   ;k   ],n))
+     &           )*dxinv
+
+         CHF_ENDDO
+       enddo
+
+      return
+      end
+!     -----------------------------------------------------------------
+!     subroutine HOAVGDOWN
+!     computes a 4th order average of phi using the formula
+!     phicoarse = <phi> - h^2 <Laplacian(phi)>/24
+!
+!     INPUTS/OUTPUTS:
+!     phi       =>  phi on fine grid
+!     phicoarse<=   phi on coarsened grid.
+!     region    =>  index range over which phicoarse is defined.
+!     avstencil =>  index range over which averaging of phi is done.
+!     navstencil=>  number of points in avstencil
+!     lapstencil=>  index range over which averaging of laplacian(phi) is done.
+!     nlapstencil=>  number of points in lapstencil
+!
+!     PC: 8/29/2002.
+!     ------------------------------------------------------------------
+      subroutine HOAVGDOWN(
+     &     CHF_CONST_FRA[phi],
+     &     CHF_FRA[phicoarse],
+     &     CHF_CONST_INT[nrefine],
+     &     CHF_BOX[region],
+     &     CHF_BOX[avstencil],
+     &     CHF_CONST_INT[navstencil],
+     &     CHF_BOX[lapstencil],
+     &     CHF_CONST_INT[nlapstencil])
+
+      !XXX -- unused var
+      !XXXREAL_T dxinv,lofphi,avlphi
+      REAL_T lofphi,avlphi
+      integer n,ncomp,spacedim
+
+      integer CHF_DDECL[i,ic,is;j,jc,js;k,kc,ks]
+
+      ncomp = CHF_NCOMP[phi]
+      if (ncomp .ne. CHF_NCOMP[phicoarse]) then
+!         print*, 'phi, flux, or phiCoarse are incompatible'
+!         stop
+         call MAYDAYERROR()
+      endif
+
+      ncomp = CHF_NCOMP[phi]
+      spacedim = CH_SPACEDIM
+      avlphi = 0.0
+      do n = 0, ncomp-1
+         CHF_MULTIDO[region; ic; jc; kc]
+
+! Compute average of (h^2 Laplacian(phi)).
+
+         CHF_MULTIDO[lapstencil;is;js;ks]
+
+             CHF_DTERM[
+             i = ic*nrefine + is;
+             j = jc*nrefine + js;
+             k = kc*nrefine + ks]
+             lofphi =
+     &              -2*spacedim*phi(CHF_IX[i   ;j ;k   ],n) CHF_DTERM[
+     &           +  phi(CHF_IX[i+1 ;j   ;k   ],n)
+     &           +  phi(CHF_IX[i-1 ;j   ;k   ],n) ;
+     &           +  phi(CHF_IX[i   ;j+1 ;k   ],n)
+     &           +  phi(CHF_IX[i   ;j-1 ;k   ],n) ;
+     &           +  phi(CHF_IX[i   ;j   ;k+1 ],n)
+     &           +  phi(CHF_IX[i   ;j   ;k-1 ],n) ]
+             avlphi = avlphi + lofphi
+
+         CHF_ENDDO
+         avlphi = avlphi / nlapstencil
+
+         phicoarse(CHF_IX[ic;jc;kc],n) = zero
+         CHF_MULTIDO[avstencil;is;js;ks]
+
+             CHF_DTERM[
+             i = ic*nrefine + is;
+             j = jc*nrefine + js;
+             k = kc*nrefine + ks]
+             phicoarse(CHF_IX[ic;jc;kc],n) =
+     &                      phicoarse(CHF_IX[ic;jc;kc],n) +
+     &                      phi(CHF_IX[i;j;k],n)
+         CHF_ENDDO
+
+             phicoarse(CHF_IX[ic;jc;kc],n) =
+     &                      phicoarse(CHF_IX[ic;jc;kc],n)/navstencil
+     &                      -avlphi/24
+
+
+         CHF_ENDDO
+       enddo
+
+      return
+      end

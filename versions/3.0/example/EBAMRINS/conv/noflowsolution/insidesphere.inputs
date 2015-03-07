@@ -1,0 +1,67 @@
+#max steps at finest level
+max_step  	      = 2
+viscosity             = 0.009
+num_filtrations = 0
+#no max time here.  controlled by steps and time step
+use_limiting          = 0
+init_iterations       = 3
+
+domain_length         = 1.0
+max_level	      = 0
+
+#this is the coarsest box of the coarsest level
+#fixed_dt              = 6.4e-3
+#n_cell                = 8 8 8
+
+#fixed_dt              = 3.2e-3
+#n_cell                = 16 16 16
+
+#fixed_dt              = 1.6e-3
+#n_cell                =  32 32 32
+
+fixed_dt              = 8.0e-4
+n_cell                = 64 64 64 
+
+#fixed_dt              = 4.0e-4
+#n_cell                = 128 128 128 
+
+#fixed_dt              = 2.0e-4
+#n_cell                = 256 256 256 
+
+ref_ratio	      = 2 2 2 2
+
+checkpoint_interval   = -1
+plot_interval	      = -1
+max_grid_size	      = 64
+fill_ratio	      = 0.7
+block_factor	      = 8
+regrid_interval	      = 2
+##this has to be bigger than one!
+max_dt_grow	      = 1.1  
+cfl		      = 0.5
+init_cfl	      = 0.5
+refine_threshold      = 0.1
+verbosity	      = 3
+nesting_radius	      = 2
+tag_buffer	      = 2
+vortex_strength       = 1.0
+
+do_error_output  = 1
+test_verbosity = 3
+
+## 5 is a sphere
+which_geom = 5
+
+core_radius   = 0.45
+sphere_radius = 0.45
+#sphere_center = 0.36 0.5 0.5
+vortex_center = 0.36 0.5 0.5
+sphere_center = 0.5 0.5 0.5
+#vortex_center = 0.5 0.5 0.5
+fluid_inside = true
+
+
+solver_tolerance = 1.0e-11
+solver_hang      = -1.0
+solver_num_smooth = 4
+solver_iter_max   = 40

@@ -1,0 +1,39 @@
+# alpha*I + beta*laplacian
+use_eb_grids = false
+refine_threshold = 0.85
+alpha = 0.0
+beta  = 1.0
+#flag for convergence tests
+iprob = 2
+do_error_output = 1
+
+
+# Sine frequency multipliers to use
+# for when bcs are trig
+trig = 2.0 2.0 2.0
+
+
+###GRID STUFF
+max_level    = 0
+ref_ratio    = 2 2 2 2 2 
+#n_cells      = 8 8 8
+#n_cells      = 16 16 16
+#n_cells      = 32 32 32
+n_cells      =  64 64 64
+#n_cells      =  128 128 128 
+#n_cells      =  256 256 256
+
+#bcs for lfaces 2==trig neumann, 3 == trig dirc
+bc_lo              = 4 4 4
+bc_hi              = 4 4 4
+#bc_lo              = 2 2 2    
+#bc_hi              = 2 2 2  
+
+block_factor = 8
+fill_ratio   = 0.7
+buffer_size  = 2
+max_grid_size = 8
+
+##GEOMETRY STUFF
+domain_length = 1.0 1.0 1.0
+

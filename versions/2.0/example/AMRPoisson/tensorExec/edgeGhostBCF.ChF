@@ -1,0 +1,74 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+c ------------------------------------------------------------------
+c this subroutine enforces edge-centered physical boundary conditions
+c at the moment, don't know how to do anything besides Dirichlet
+c ostensibly, we're setting the BC to be 
+c (neumfac*d(state)/d[xyz] + dirfac*(state) = inhmval on the boundary
+c 
+c INPUTS/OUTPUTS:
+c state    <=> edge-centered state to which we're applying the BC
+c neumfac   => should be 0, at this point
+c dirfac    => factor multiplying dirichlet BC
+c inhmval   => inhomogeneous value for BC
+c bcbox     => ghost cells to fill
+c dir       => direction of face
+c side      => side of face (-1 low, 1 high)
+c dx        => cell spacing
+c startcomp => first component of state to which BC will be applied
+c endcomp   => last component of state to which BC will be applied
+c ---------------------------------------------------------------------
+      subroutine BOXEDGEBC(CHF_FRA[state], 
+     &                     CHF_CONST_FRA[neumfac],
+     &                     CHF_CONST_FRA[dircfac],
+     &                     CHF_CONST_FRA[inhmval],
+     &                     CHF_BOX[bcBox],
+     &                     CHF_CONST_INT[dir],
+     &                     CHF_CONST_INT[side],
+     &                     CHF_CONST_REAL[dx],
+     &                     CHF_CONST_INT[startcomp],
+     &                     CHF_CONST_INT[endcomp])
+
+c ::: local variables
+      integer CHF_DDECL[i; j; k], ncomp, nc
+      integer CHF_DDECL[ii;jj;kk]
+
+      ncomp = CHF_NCOMP[state]
+
+c some error checking
+      if (ncomp.ne.CHF_NCOMP[neumfac]) then
+         call MAYDAY_ERROR()
+      endif
+      if (ncomp.ne.CHF_NCOMP[dircfac]) then
+         call MAYDAY_ERROR()
+      endif
+
+      if (ncomp.ne.CHF_NCOMP[inhmval]) then
+         call MAYDAY_ERROR()
+      endif
+
+      CHF_DTERM[
+      ii = side*CHF_ID(0,dir);
+      jj = side*CHF_ID(1,dir);
+      kk = side*CHF_ID(2,dir)]
+
+      do nc = startcomp, endcomp
+         CHF_MULTIDO[bcbox;i;j;k]
+c at the moment, only Dirichlet BC is impemented
+
+         state(CHF_IX[i;j;k], nc) = 
+     &          inhmval(CHF_IX[i;j;k],nc)/dircfac(CHF_IX[i;j;k],nc)
+         CHF_ENDDO
+      enddo
+      
+
+
+      return
+      end
+

@@ -1,0 +1,65 @@
+max_step  	      = 100
+viscosity             = 0.9
+do_slip_walls         = 0
+
+tag_on_scalar         = 0
+num_filter_iterations  = 1
+num_gphi_iterations    = 1
+num_init_iterations    = 1
+perturbation_eps      = 0
+perturbation_freq     = 2.0
+poisselle_inflow = false
+do_regrid_smoothing = false
+streak_radius = 0.02
+num_streaks   = 5
+
+max_time              = 1.0e10
+use_limiting          = 0
+max_level	      = 0
+
+#this is the coarsest box of the coarsest level
+
+#fixed_dt              = 4.0e-3
+
+ref_ratio             = 2 2 2 2 2 
+checkpoint_interval   = -1
+plot_interval	      = 10
+max_grid_size	      = 1024
+fill_ratio	      = 0.7
+block_factor	      = 8
+regrid_interval	      = 2
+##this has to be bigger than one!
+max_dt_grow	      = 1.1  
+cfl		      = 0.5
+init_cfl	      = 0.5
+refine_threshold      = 0.1
+verbosity	      = 1
+nesting_radius	      = 2
+tag_buffer	      = 2
+flow_dir	      = 0
+spot_center	      = 0.15 0.5 0.25
+spot_radius	      = 0.1
+inflow_vel            = 9.0
+
+do_error_output  = 1
+test_verbosity = 3
+
+###geometry flag
+### 13 is a smooth arctan based contraction
+
+which_geom = 13
+flowDir = 0
+
+tyler_x1 = 3.5
+tyler_x2 = 4.5
+
+tyler_y1 = 1.0
+tyler_y2 = 0.2496875
+
+contraction = 1
+c = 4.0 1.0 1.0
+n_cell = 256 64 64
+domain_length = 8.0 2.0 2.0
+
+
+

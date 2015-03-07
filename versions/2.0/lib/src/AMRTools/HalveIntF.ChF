@@ -1,0 +1,163 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+#include "CONSTANTS.H"
+
+!=======================================================
+!     subroutine HALVEINTFACES
+!     Divide arr by two on faces of bxsupp;
+!     also by four on edges and by eight on corners.
+!
+!     => inputs,  <= outputs
+!     arr <=> NODE-centered integer array
+!     bxsupp => NODE-centered box of nodes on which to halve on faces
+!
+!     petermc, 12 Dec 2005
+      subroutine halveintfaces(
+     &     CHF_FIA[arr],
+     &     CHF_BOX[bxsupp])
+      integer CHF_DDECL[i; j; k]
+      integer CHF_DDECL[iarmin, iarmax; jarmin, jarmax; karmin, karmax]
+      integer CHF_DDECL[ibxmin, ibxmax; jbxmin, jbxmax; kbxmin, kbxmax]
+      integer CHF_DDECL[imin, imax; jmin, jmax; kmin, kmax]
+      integer var
+
+      iarmin = CHF_LBOUND[arr; 0]
+      iarmax = CHF_UBOUND[arr; 0]
+#if CH_SPACEDIM>=2
+      jarmin = CHF_LBOUND[arr; 1]
+      jarmax = CHF_UBOUND[arr; 1]
+#endif
+#if CH_SPACEDIM>=3
+      karmin = CHF_LBOUND[arr; 2]
+      karmax = CHF_UBOUND[arr; 2]
+#endif
+
+      ibxmin = CHF_LBOUND[bxsupp; 0]
+      ibxmax = CHF_UBOUND[bxsupp; 0]
+#if CH_SPACEDIM>=2
+      jbxmin = CHF_LBOUND[bxsupp; 1]
+      jbxmax = CHF_UBOUND[bxsupp; 1]
+#endif
+#if CH_SPACEDIM>=3
+      kbxmin = CHF_LBOUND[bxsupp; 2]
+      kbxmax = CHF_UBOUND[bxsupp; 2]
+#endif
+
+      imin = max(iarmin, ibxmin)
+      imax = min(iarmax, ibxmax)
+#if CH_SPACEDIM>=2
+      jmin = max(jarmin, jbxmin)
+      jmax = min(jarmax, jbxmax)
+#endif
+#if CH_SPACEDIM>=3
+      kmin = max(karmin, kbxmin)
+      kmax = min(karmax, kbxmax)
+#endif
+
+      do var = 0, CHF_NCOMP[arr]-1
+
+!     check that ibxmin is in range iarmin : iarmax
+         i = ibxmin
+         if (iarmin .le. i .and. i .le. iarmax) then
+#if CH_SPACEDIM>=3
+            do k = kmin, kmax
+#endif
+#if CH_SPACEDIM>=2
+               do j = jmin, jmax
+#endif
+                  arr(CHF_IX[i; j; k], var) =
+     &                 arr(CHF_IX[i; j; k], var) / 2
+#if CH_SPACEDIM>=2
+               enddo
+#endif
+#if CH_SPACEDIM>=3
+            enddo
+#endif
+         endif
+
+!     check that ibxmax is in range iarmin : iarmax
+         i = ibxmax
+         if (iarmin .le. i .and. i .le. iarmax) then
+#if CH_SPACEDIM>=3
+            do k = kmin, kmax
+#endif
+#if CH_SPACEDIM>=2
+               do j = jmin, jmax
+#endif
+                  arr(CHF_IX[i; j; k], var) =
+     &                 arr(CHF_IX[i; j; k], var) / 2
+#if CH_SPACEDIM>=2
+               enddo
+#endif
+#if CH_SPACEDIM>=3
+            enddo
+#endif
+         endif
+
+#if CH_SPACEDIM>=2
+
+!     check that jbxmin is in range jarmin : jarmax
+         j = jbxmin
+         if (jarmin .le. j .and. j .le. jarmax) then
+#if CH_SPACEDIM>=3
+            do k = kmin, kmax
+#endif
+               do i = imin, imax
+                  arr(CHF_IX[i; j; k], var) =
+     &                 arr(CHF_IX[i; j; k], var) / 2
+               enddo
+#if CH_SPACEDIM>=3
+            enddo
+#endif
+         endif
+         
+!     check that jbxmax is in range jarmin : jarmax
+         j = jbxmax
+         if (jarmin .le. j .and. j .le. jarmax) then
+#if CH_SPACEDIM>=3
+            do k = kmin, kmax
+#endif
+               do i = imin, imax
+                  arr(CHF_IX[i; j; k], var) =
+     &                 arr(CHF_IX[i; j; k], var) / 2
+               enddo
+#if CH_SPACEDIM>=3
+            enddo
+#endif
+         endif
+
+#endif
+         
+#if CH_SPACEDIM>=3
+
+!     check that kbxmin is in range karmin : karmax
+         k = kbxmin
+         if (karmin .le. k .and. k .le. karmax) then
+            do j = jmin, jmax
+               do i = imin, imax
+                  arr(CHF_IX[i; j; k], var) =
+     &                 arr(CHF_IX[i; j; k], var) / 2
+               enddo
+            enddo
+         endif
+         
+!     check that kbxmax is in range karmin : karmax
+         k = kbxmax
+         if (karmin .le. k .and. k .le. karmax) then
+            do j = jmin, jmax
+               do i = imin, imax
+                  arr(CHF_IX[i; j; k], var) =
+     &                 arr(CHF_IX[i; j; k], var) / 2
+               enddo
+            enddo
+         endif
+
+#endif
+
+      enddo
+         
+      return
+      end

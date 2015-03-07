@@ -1,0 +1,26 @@
+#main parameters
+main.iterations          = 1
+#iprob == 0, const rhs within r<rno, zero outside        
+#iprob == 1, cubic rhs within r<rno, zero outside        
+main.iprob              = 1       #form of rhs to use
+main.rhono              = 0.75    #coefficient of rhs
+main.rno                = 0.5     #radius input to rhs
+main.bc_lo              = 2 2 2   #bcs for lo faces 1==neumann, 0 == dirc
+main.bc_hi              = 2 2 2   #bcs for hi faces 1==neumann, 0 == dirc
+main.max_level          = 1           # maximum level number
+main.maxboxsize         = 32           # maximum linear size of boxes
+#main.ref_ratio          = 4 4 4 4 4 4 4    # refinement ratio
+main.ref_ratio          = 2 2 2 2 2 2 2 2    # refinement ratio
+main.n_cell             = 128 128 128 # num. cells in base grid dirs
+main.prob_lo            = 0.0 0.0 0.0 # coords. of lower left. 
+main.prob_hi            = 1.0 1.0 1.0 # coords. of upper right.
+main.lbase              = 0          #lbase for solves
+main.verbose            = 1          #if this is == 1, verbose is true
+main.fill_ratio         = 0.85     #fill ratio for meshrefine
+main.deg_interp       = 2      # 2 means quadratic/biquadratic
+main.level_1_domain     = 0 0 0   7 7 7 # base domain for level 1 boxes
+main.level_1_boxcount   = 4             # number of boxes at level 1
+main.level_1_boxes =    0 2 2   3 5 5
+                        4 3 3   5 4 4
+                        2 0 0   4 1 1
+                        5 2 2   7 2 2

@@ -1,0 +1,200 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+#include "LGintegrator.H"
+
+        subroutine EXPLOSIONSETF(
+     &    CHF_REAL[ausmallPressure],
+     &    CHF_CONST_REAL[augamma],
+     &    CHF_CONST_REAL[apjump],
+     &    CHF_CONST_REAL[arhojump],
+     &    CHF_CONST_REAL[ap0],
+     &    CHF_CONST_REAL[arho0],
+     &    CHF_CONST_INT[abdir],
+     &    CHF_CONST_REAL[abmag],
+     &    CHF_CONST_REALVECT[aucenter],
+     &    CHF_CONST_REAL[ausize],
+     &    CHF_CONST_REALVECT[auvelocity],
+     &    CHF_CONST_REAL[auartvisc])
+
+#include "ExplosionMHDCommon.fh"
+#include "EosCommon.fh"
+
+        gamma = augamma
+        pjump = apjump
+        rhojump = arhojump
+        p0 = ap0
+        rho0 = arho0
+        Bdir = abdir
+        Bmag = abmag
+
+        CHF_DTERM[
+        centerx = aucenter(0);
+        centery = aucenter(1);
+        centerz = aucenter(2)]
+
+        size = ausize
+
+c initialize to zero before initializing to right number
+        velx = zero
+        vely = zero
+        velz = zero
+
+        CHF_DTERM[
+        velx = auvelocity(0);
+        vely = auvelocity(1);
+        velz = auvelocity(2)]
+
+        artvisc = auartvisc
+
+        ausmallPressure = small*small
+
+        return
+        end
+
+        subroutine EXPLOSIONINITF(
+     &    CHF_FRA[U],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_BOX[box])
+
+        real_t ke,pexplosion,rhoexplosion
+        real_t uu,vv,ww
+        integer CHF_DDECL[i;j;k]
+        real_t CHF_DDECL[x;y;z]
+        real_t CHF_DDECL[xcenter;ycenter;zcenter]
+        real_t be
+        real_t rad0sqr,radsqr
+        real_t energyout, energyin
+
+#include "ExplosionMHDCommon.fh"
+#include "EosCommon.fh"
+
+        CHF_DTERM[
+        xcenter = centerx;
+        ycenter = centery;
+        zcenter = centerz]
+
+        rad0sqr = size*size
+
+        uu = velx
+        vv = vely
+        ww = velz
+
+        ke = half*(uu*uu + vv*vv + ww*ww)
+c  energy in magnetic field
+        be = half*(Bmag*Bmag)
+
+        pexplosion = pjump*p0
+        rhoexplosion = rhojump*rho0
+        energyout = p0/(gamma-one)+rho0*ke + be
+        energyin = pexplosion/(gamma-one)+rhoexplosion*ke +be
+        CHF_MULTIDO[box;i;j;k]
+          CHF_DTERM[
+          x = (i + half) * dx - xcenter;
+          y = (j + half) * dx - ycenter;
+          z = (k + half) * dx - zcenter]
+
+          radsqr = CHF_DTERM[x*x; + y*y; + z*z]
+
+          if (radsqr .ge. rad0sqr) then
+             U(CHF_IX[i;j;k],URHO) = rho0
+             U(CHF_IX[i;j;k],UMOMX) = rho0*velx
+             U(CHF_IX[i;j;k],UMOMY) = rho0*vely
+             U(CHF_IX[i;j;k],UMOMZ) = rho0*velz 
+               
+             U(CHF_IX[i;j;k],UENG) = energyout
+c  don't bother setting divb or higher...
+          else
+             U(CHF_IX[i;j;k],URHO) = rhoexplosion
+             U(CHF_IX[i;j;k],UMOMX) = rhoexplosion*velx
+             U(CHF_IX[i;j;k],UMOMY) = rhoexplosion*vely
+             U(CHF_IX[i;j;k],UMOMZ) = rhoexplosion*velz
+               
+             U(CHF_IX[i;j;k],UENG) = energyin
+
+
+          endif
+c  magnetic field is constant in the domain
+          U(CHF_IX[i;j;k],UBX) = 0.0
+          U(CHF_IX[i;j;k],UBY) = 0.0
+          U(CHF_IX[i;j;k],UBZ) = 0.0
+
+          U(CHF_IX[i;j;k], UBX+Bdir) = Bmag
+
+        CHF_ENDDO
+        return
+        end
+
+        subroutine EXPLOSIONMHDSLOPEBCSF(
+     &    CHF_FRA[dW],
+     &    CHF_CONST_FRA[W],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[dir],
+     &    CHF_BOX[loBox],
+     &    CHF_CONST_INT[hasLo],
+     &    CHF_BOX[hiBox],
+     &    CHF_CONST_INT[hasHi])
+
+c        integer CHF_DDECL[i;j;k]
+c        integer CHF_DDECL[ioff;joff;koff]
+c        integer CHF_DDECL[inorm;itan1;itan2]
+        integer spacedim
+
+        spacedim = CH_SPACEDIM
+
+c        write(6,*) 'EXPLOSIONMHDSLOPEBC dx', dx,dir
+c        write(6,*) 'EXPLOSIONMHDSLOPEBC has', hasLo,hasHi
+c        write(6,*) 'EXPLOSIONMHDSLOPEBC LOBox', iloboxlo0,iloboxhi0,
+c     &           iloboxlo1,iloboxhi1
+c        write(6,*) 'EXPLOSIONMHDSLOPEBC HiBox', ihiboxlo0,ihiboxhi0,
+c     &           ihiboxlo1,ihiboxhi1
+c        write(6,*) 'EXPLOSIONMHDSLOPEBC W ', iwlo0,iwhi0, iwlo1,iwhi1
+c        write(6,*) 'EXPLOSIONMHDSLOPEBC dW ', idwlo0,idwhi0, idwlo1,idwhi1
+
+        return
+        end
+
+
+        subroutine EXPLOSIONMHDPRIMBCF(
+     &    CHF_FRA[WG],
+     &    CHF_CONST_FRA[W],
+     &    CHF_CONST_REAL[time],
+     &    CHF_CONST_INT[lohisign],
+     &    CHF_CONST_REAL[dx],
+     &    CHF_CONST_INT[dir],
+     &    CHF_BOX[box])
+
+c        real_t ke,r0,p0,umag,p,r
+c        real_t CHF_DDECL[x;y;z]
+c        real_t xofy,rg,pg,ws
+c        real_t  uu,vv,ww
+        integer CHF_DDECL[i;j;k]
+c        real_t bi,bj,bk
+
+#include "EosCommon.fh"
+
+c        write(6,*) 'MHDPRIMBC dx ', dx,dir,lohisign
+c        write(6,*) 'MHDPRIMBC Box ', iboxlo0,iboxhi0, iboxlo1,iboxhi1
+c        write(6,*) 'MHDPRIMBC W ', iwlo0,iwhi0, iwlo1,iwhi1
+c        write(6,*) 'MHDPRIMBC F', iWGlo0,iwghi0, iwglo1,iwghi1
+
+        CHF_MULTIDO[box;i;j;k]
+          WG(CHF_IX[i;j;k],WRHO) = W(CHF_IX[i;j;k],WRHO)
+
+          WG(CHF_IX[i;j;k],WVELX) = W(CHF_IX[i;j;k],WVELX)
+          WG(CHF_IX[i;j;k],WVELY) = W(CHF_IX[i;j;k],WVELY)
+          WG(CHF_IX[i;j;k],WVELZ) = W(CHF_IX[i;j;k],WVELZ)
+
+          WG(CHF_IX[i;j;k],WBX) = W(CHF_IX[i;j;k],WBX)
+          WG(CHF_IX[i;j;k],WBY) = W(CHF_IX[i;j;k],WBY)
+          WG(CHF_IX[i;j;k],WBZ) = W(CHF_IX[i;j;k],WBZ)
+
+          WG(CHF_IX[i;j;k],WPRES) = W(CHF_IX[i;j;k],WPRES)
+        CHF_ENDDO
+
+        return
+        end

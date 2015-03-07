@@ -1,0 +1,637 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+      subroutine maxnorm(
+     &     CHF_REAL[max],
+     &     CHF_CONST_FRA1[vel],
+     &     CHF_BOX[box])
+
+      integer CHF_DDECL[i;j;k]
+
+      CHF_MULTIDO[box; i; j; k]
+      if(abs(vel(CHF_IX[i;j;k])).gt.max) max=abs(vel(CHF_IX[i;j;k]))
+      CHF_ENDDO
+
+      return
+      end
+
+      subroutine maxnormmask(
+     &     CHF_REAL[max],
+     &     CHF_CONST_FRA1[vel],
+     &     CHF_BOX[box],
+     &     CHF_CONST_FIA1[mask])
+
+      integer CHF_DDECL[i;j;k]
+
+      CHF_MULTIDO[box; i; j; k]
+      if(mask(CHF_IX[i;j;k]).ge.zero) then
+         if(abs(vel(CHF_IX[i;j;k])).gt.max) max=abs(vel(CHF_IX[i;j;k]))
+      endif
+      CHF_ENDDO
+
+      return
+      end
+
+      subroutine amrpzerosub(
+     &     chf_fra[phi],
+     $     chf_box[overlaybox],
+     $     chf_int[ncomp])
+      integer chf_ddecl[i;j;k]
+      integer ivar
+
+      do ivar = 0, ncomp-1
+         chf_multido[overlayBox;i;j;k]
+
+         phi(chf_ix[i;j;k], ivar) = zero
+
+         chf_enddo
+      enddo
+
+      return
+      end
+
+      subroutine doallregularmulticolor(
+     &     chf_fra1[phi],
+     &     chf_const_fra1[rhs],
+     &     chf_const_real[weight],
+     &     chf_const_real[alpha],
+     &     chf_const_real[beta],
+     &     chf_const_realvect[dx],
+     &     chf_box[coloredbox])
+
+      integer chf_ddecl[i;j;k]
+      real_t laplphi, chf_ddecl[dx0;dx1;dx2]
+
+      chf_dterm[dx0 = beta/(dx(0) * dx(0));
+                dx1 = beta/(dx(1) * dx(1));
+                dx2 = beta/(dx(2) * dx(2));]
+
+      chf_multido[coloredBox;i;j;k;2]
+
+        laplphi = CHF_DTERM[
+     &     (    phi(chf_ix[i+1;j  ;k  ])
+     &     +    phi(chf_ix[i-1;j  ;k  ])
+     $     -two*phi(chf_ix[i  ;j  ;k  ]))*dx0 ;
+     $     +(   phi(chf_ix[i  ;j+1;k  ])
+     &     +    phi(chf_ix[i  ;j-1;k  ])
+     $     -two*phi(chf_ix[i  ;j  ;k  ]))*dx1 ;
+     $     +(   phi(chf_ix[i  ;j  ;k+1])
+     &     +    phi(chf_ix[i  ;j  ;k-1])
+     $     -two*phi(chf_ix[i  ;j  ;k  ]))*dx2 ]
+
+        laplphi = laplphi + alpha * phi(chf_ix[i;j;k])
+
+        phi(chf_ix[i;j;k]) = phi(chf_ix[i;j;k]) +
+     &     weight*(rhs(chf_ix[i;j;k]) - laplphi)
+
+      chf_enddo
+
+
+      return
+      end
+
+      subroutine doallregulargsrb(
+     &     chf_fra1[phi],
+     &     chf_const_fra1[rhs],
+     &     chf_const_real[weight],
+     &     chf_const_real[alpha],
+     &     chf_const_real[beta],
+     &     chf_const_realvect[dx],
+     &     chf_box[region],
+     &     chf_const_int[redBlack])
+
+      integer chf_ddecl[i;j;k]
+      integer imin,imax,indtot
+      real_t laplphi, chf_ddecl[dx0;dx1;dx2]
+
+      chf_dterm[dx0 = beta/(dx(0) * dx(0));
+                dx1 = beta/(dx(1) * dx(1));
+                dx2 = beta/(dx(2) * dx(2));]
+
+#if CH_SPACEDIM==3
+      do k=CHF_LBOUND[region; 2], CHF_UBOUND[region; 2]
+#endif
+#if CH_SPACEDIM > 1
+         do j=CHF_LBOUND[region; 1], CHF_UBOUND[region; 1]
+#endif
+            imin = CHF_LBOUND[region; 0]
+            CHF_DTERM[indtot = imin; + j ; + k ]
+C     add 0 or 1 to imin, so that imin+j+k has same parity as redBlack
+C     petermc, 26 april 2001
+            imin = imin + abs(mod(indtot + redBlack, 2))
+            imax = CHF_UBOUND[region; 0]
+            do i = imin, imax, 2
+
+               laplphi = CHF_DTERM[
+     &              (    phi(chf_ix[i+1;j  ;k  ])
+     &              +    phi(chf_ix[i-1;j  ;k  ])
+     $              -two*phi(chf_ix[i  ;j  ;k  ]))*dx0 ;
+     $              +(   phi(chf_ix[i  ;j+1;k  ])
+     &              +    phi(chf_ix[i  ;j-1;k  ])
+     $              -two*phi(chf_ix[i  ;j  ;k  ]))*dx1 ;
+     $              +(   phi(chf_ix[i  ;j  ;k+1])
+     &              +    phi(chf_ix[i  ;j  ;k-1])
+     $              -two*phi(chf_ix[i  ;j  ;k  ]))*dx2 ]
+
+               laplphi = laplphi + alpha * phi(chf_ix[i;j;k])
+
+               phi(chf_ix[i;j;k]) = phi(chf_ix[i;j;k]) +
+     &              weight*(rhs(chf_ix[i;j;k]) - laplphi)
+
+            enddo
+#if CH_SPACEDIM > 1
+         enddo
+#endif
+#if CH_SPACEDIM==3
+      enddo
+#endif
+
+
+      return
+      end
+
+      subroutine slowgsrbebamrpo(
+     &     chf_fra1[phi],
+     &     chf_const_fra1[lph],
+     &     chf_const_fra1[rhs],
+     &     chf_const_fra1[lam],
+     &     chf_box[coloredbox])
+
+      integer chf_ddecl[i;j;k]
+      REAL_T phio, lamo, rhso, lpho
+
+      chf_multido[coloredbox;i;j;k;2]
+
+         phio  = phi(chf_ix[i;j;k])
+         lamo  = lam(chf_ix[i;j;k])
+         rhso  = rhs(chf_ix[i;j;k])
+         lpho  = lph(chf_ix[i;j;k])
+
+         phi(chf_ix[i;j;k]) =
+     $        phi(chf_ix[i;j;k]) +
+     $        lam(chf_ix[i;j;k])*(
+     $        rhs(chf_ix[i;j;k]) -
+     $        lph(chf_ix[i;j;k]))
+
+       chf_enddo
+
+      return
+      end
+
+
+
+      subroutine doallregularjacobi(
+     &     chf_fra1[phi],
+     &     chf_const_fra1[rhs],
+     &     chf_const_real[weight],
+     &     chf_const_real[alpha],
+     &     chf_const_real[beta],
+     &     chf_const_realvect[dx],
+     &     chf_box[box])
+
+      integer chf_ddecl[i;j;k]
+      real_t laplphi, chf_ddecl[dx0;dx1;dx2]
+
+      chf_dterm[dx0 = beta/(dx(0) * dx(0));
+                dx1 = beta/(dx(1) * dx(1));
+                dx2 = beta/(dx(2) * dx(2));]
+
+      chf_multido[box;i;j;k]
+
+        laplphi = CHF_DTERM[
+     &     (    phi(chf_ix[i+1;j  ;k  ])
+     &     +    phi(chf_ix[i-1;j  ;k  ])
+     $     -two*phi(chf_ix[i  ;j  ;k  ]))*dx0 ;
+     $     +(   phi(chf_ix[i  ;j+1;k  ])
+     &     +    phi(chf_ix[i  ;j-1;k  ])
+     $     -two*phi(chf_ix[i  ;j  ;k  ]))*dx1 ;
+     $     +(   phi(chf_ix[i  ;j  ;k+1])
+     &     +    phi(chf_ix[i  ;j  ;k-1])
+     $     -two*phi(chf_ix[i  ;j  ;k  ]))*dx2 ]
+
+        laplphi = laplphi + alpha * phi(chf_ix[i;j;k])
+
+        phi(chf_ix[i;j;k]) = phi(chf_ix[i;j;k]) +
+     &     weight*(rhs(chf_ix[i;j;k]) - laplphi)
+
+      chf_enddo
+
+
+      return
+      end
+
+c     Undo regular computation for IntVect iv.  Used in irregular
+c     calculation.  Should be the exact opposite of above function.
+c     This is being rewritten because, as Mike pointed out, it uses improperly
+c     updated values for phi to update phi.  the red-black only enusre the
+c     off-diagonal terms are still tamper-free, not phi (bvs)
+      subroutine undoregulargs(
+     &     chf_fra1[phi],
+     &     chf_const_fra1[rhs],
+     &     chf_const_real[weight],
+     &     chf_const_real[alpha],
+     &     chf_const_real[beta],
+     &     chf_const_realvect[dx],
+     &     chf_const_intvect[iv])
+
+      integer chf_ddecl[i;j;k]
+      real_t sublaplphi, chf_ddecl[dx0;dx1;dx2]
+      real_t bigk, sumtwooverh2, numer
+
+      chf_dterm[
+      i = iv(0);
+      j = iv(1);
+      k = iv(2)]
+
+      chf_dterm[
+      dx0 = one/(dx(0) * dx(0));
+      dx1 = one/(dx(1) * dx(1));
+      dx2 = one/(dx(2) * dx(2));]
+
+
+      sumtwooverh2 = chf_dterm[two*dx0; + two*dx1; + two*dx2]
+
+      bigk = one + weight*alpha - beta*weight*sumtwooverh2
+
+      sublaplphi = CHF_DTERM[
+     &     (    phi(chf_ix[i+1;j  ;k  ])
+     &     +    phi(chf_ix[i-1;j  ;k  ]))*dx0 ;
+     $     +(   phi(chf_ix[i  ;j+1;k  ])
+     &     +    phi(chf_ix[i  ;j-1;k  ]))*dx1 ;
+     $     +(   phi(chf_ix[i  ;j  ;k+1])
+     &     +    phi(chf_ix[i  ;j  ;k-1]))*dx2 ]
+
+      numer = phi(chf_ix[i;j;k])
+     $     + weight*rhs(chf_ix[i;j;k]) - weight*beta*sublaplphi
+
+      phi(chf_ix[i;j;k]) = numer/bigk
+
+
+      return
+      end
+
+        subroutine regapplydomainflux_inplace(
+     &    chf_fra1[phi],
+     &    chf_const_fra1[faceflux],
+     &    chf_const_real[dx],
+     &    chf_const_int[side],
+     &    chf_const_int[idir],
+     &    chf_box[box])
+
+        integer chf_ddecl[i;j;k], chf_ddecl[ioff;joff;koff]
+
+        chf_dterm[ioff = chf_id(0,idir);
+                  joff = chf_id(1,idir);
+                  koff = chf_id(2,idir)]
+
+c     strangely the faceflux lives on the first interior cell not on the face.
+c     so no whacky face-to-cell shifting here
+        chf_multido[box;i;j;k]
+
+        if (side.eq.1) then
+          phi(chf_ix[i;j;k]) =
+     &         phi(     chf_ix[i-ioff;j-joff;k-koff]) +
+     &         faceflux(chf_ix[i-ioff;j-joff;k-koff])*dx
+        else
+          phi(chf_ix[i;j;k]) =
+     &         phi(     chf_ix[i+ioff;j+joff;k+koff]) -
+     &         faceflux(chf_ix[i+ioff;j+joff;k+koff])*dx
+        endif
+
+        chf_enddo
+
+        return
+        end
+
+
+      subroutine regget1dlaplacian_inplace(
+     &     chf_fra1[opphidir],
+     &     chf_const_fra1[phi],
+     &     chf_const_real[beta],
+     &     chf_const_realvect[dx],
+     &     chf_box[box])
+
+      integer chf_ddecl[i;j;k]
+      real_t laplphi, chf_ddecl[dx0;dx1;dx2]
+
+      chf_dterm[dx0 = beta/(dx(0) * dx(0));
+                dx1 = beta/(dx(1) * dx(1));
+                dx2 = beta/(dx(2) * dx(2));]
+
+      chf_multido[box;i;j;k]
+
+      laplphi = CHF_DTERM[
+     &     (    phi(chf_ix[i+1;j  ;k  ])
+     &     +    phi(chf_ix[i-1;j  ;k  ])
+     $     -two*phi(chf_ix[i  ;j  ;k  ]))*dx0 ;
+     $     +(   phi(chf_ix[i  ;j+1;k  ])
+     &     +    phi(chf_ix[i  ;j-1;k  ])
+     $     -two*phi(chf_ix[i  ;j  ;k  ]))*dx1 ;
+     $     +(   phi(chf_ix[i  ;j  ;k+1])
+     &     +    phi(chf_ix[i  ;j  ;k-1])
+     $     -two*phi(chf_ix[i  ;j  ;k  ]))*dx2 ]
+
+c     opphidir comes in holding alpha*phi
+      opphidir(chf_ix[i;j;k]) = opphidir(chf_ix[i;j;k]) + laplphi
+
+      chf_enddo
+
+      return
+      end
+
+cccccccccccccccc
+
+      subroutine regget1dlaplacian(
+     &     chf_fra1[opphidir],
+     &     chf_const_fra1[phi],
+     &     chf_const_real[dx],
+     &     chf_const_real[beta],
+     &     chf_const_int[idir],
+     &     chf_box[lobox],
+     &     chf_const_int[haslo],
+     &     chf_box[hibox],
+     &     chf_const_int[hashi],
+     &     chf_box[centerbox])
+
+      integer chf_ddecl[i;j;k]
+      integer chf_ddecl[ioff;joff;koff]
+      real_t bdx,bdx2
+
+      bdx  = beta/dx
+      bdx2 = bdx/dx
+
+      chf_dterm[
+      ioff = chf_id(0,idir);
+      joff = chf_id(1,idir);
+      koff = chf_id(2,idir)]
+
+      chf_multido[centerbox;i;j;k]
+
+      opphidir(chf_ix[i;j;k]) =
+     &     bdx2 *
+     $     (    phi(chf_ix[i+ioff;j+joff;k+koff])
+     &     -two*phi(chf_ix[i     ;j     ;k     ])
+     &     +    phi(chf_ix[i-ioff;j-joff;k-koff]))
+
+      chf_enddo
+
+      if (haslo .eq. 1) then
+         chf_multido[lobox;i;j;k]
+
+         opphidir(chf_ix[i;j;k]) =
+     &        bdx *
+     $        (  phi(chf_ix[i+ioff;j+joff;k+koff])
+     &        -  phi(chf_ix[i     ;j     ;k     ]))
+
+         chf_enddo
+      endif
+
+      if (hashi .eq. 1) then
+         chf_multido[hibox;i;j;k]
+
+         opphidir(chf_ix[i;j;k]) =
+     &        bdx *
+     $        (  phi(chf_ix[i     ;j     ;k     ])
+     &        -  phi(chf_ix[i-ioff;j-joff;k-koff]))
+
+         chf_enddo
+      endif
+
+      return
+      end
+
+        subroutine regapplydomainflux(
+     &     chf_fra1[opphidir],
+     &     chf_const_fra1[faceflux],
+     &     chf_const_real[dx],
+     &     chf_const_real[beta],
+     $     chf_const_int[idir],
+     &     chf_const_int[side],
+     &     chf_box[lobox])
+
+        integer chf_ddecl[i;j;k]
+
+        real_t idx
+
+        idx  = one/dx
+        chf_multido[lobox;i;j;k]
+
+        opphidir(chf_ix[i;j;k]) = idx * side *
+     &       (beta*faceflux(chf_ix[i;j;k]) - opphidir(chf_ix[i;j;k]))
+
+        chf_enddo
+
+
+        return
+        end
+
+      subroutine regsumlaplacian(
+     &     chf_fra1[opphi],
+     &     chf_const_fra1[opphidir],
+     &     chf_box[opphibox])
+
+        integer chf_ddecl[i;j;k]
+
+        chf_multido[opphibox;i;j;k]
+
+        opphi(chf_ix[i;j;k]) =
+     $       opphi(   chf_ix[i;j;k]) +
+     $       opphidir(chf_ix[i;j;k])
+
+        chf_enddo
+
+
+        return
+        end
+
+
+        subroutine regmulticolorgs(
+     &    chf_fra1[newphi],
+     &    chf_const_real[weight],
+     &    chf_const_fra1[resid],
+     &    chf_box[coloredbox])
+
+        integer chf_ddecl[i;j;k]
+
+        chf_multido[coloredbox;i;j;k;2]
+          newphi(chf_ix[i;j;k]) = newphi(chf_ix[i;j;k])
+     &                          + weight * resid(chf_ix[i;j;k])
+        chf_enddo
+
+        return
+        end
+
+
+      subroutine reggsrb(
+     &     chf_fra1[newphi],
+     &     chf_const_fra1[resid],
+     &     chf_const_real[weight],
+     &     chf_box[box],
+     &     chf_const_int[color])
+
+      integer chf_ddecl[i;j;k]
+      integer imin,imax,indtot
+
+#if CH_SPACEDIM==3
+      do k=CHF_LBOUND[box; 2], CHF_UBOUND[box; 2]
+#endif
+#if CH_SPACEDIM > 1
+         do j=CHF_LBOUND[box; 1], CHF_UBOUND[box; 1]
+#endif
+            imin = CHF_LBOUND[box; 0]
+            CHF_DTERM[indtot = imin; + j ; + k ]
+            imin = imin + abs(mod(indtot + color, 2))
+            imax = CHF_UBOUND[box; 0]
+            do i = imin, imax, 2
+               newphi(chf_ix[i;j;k]) = newphi(chf_ix[i;j;k])
+     &                               + weight*resid(chf_ix[i;j;k])
+            enddo
+#if CH_SPACEDIM > 1
+         enddo
+#endif
+#if CH_SPACEDIM==3
+      enddo
+#endif
+      return
+      end
+
+
+      subroutine reggetflux(
+     &     chf_fra[flux],
+     &     chf_const_fra[phi],
+     &     chf_box[opphibox],
+     $     chf_const_real[beta],
+     $     chf_const_realvect[dx],
+     $     chf_const_int[idir],
+     $     chf_const_int[ncomp])
+
+      integer chf_ddecl[i;j;k]
+      integer chf_ddecl[ioff;joff;koff]
+
+      integer ivar
+      real_t oneoverdx
+
+      chf_dterm[
+      ioff = chf_id(0,idir);
+      joff = chf_id(1,idir);
+      koff = chf_id(2,idir)]
+
+      oneoverdx = beta/dx(idir)
+
+      do ivar = 0, ncomp-1
+
+         chf_multido[opphibox;i;j;k]
+
+         flux(chf_ix[i;j;k], ivar) =
+     $        oneoverdx*(
+     $        phi(chf_ix[i     ;j     ;k     ], ivar) -
+     $        phi(chf_ix[i-ioff;j-joff;k-koff], ivar) )
+
+
+         chf_enddo
+
+      enddo
+
+      return
+      end
+
+       subroutine prethomasalgo(
+      &     chf_fra[coefs],
+      &     chf_box[smallbox],
+      &     chf_const_int[lineDir])
+
+       integer chf_ddecl[i;j;k]
+       integer chf_ddecl[ioff;joff;koff]
+       integer hi,diag,lo
+
+       lo   = 0
+       diag = 1
+       hi   = 2
+
+       chf_dterm[
+       ioff = chf_id(0,linedir);
+       joff = chf_id(1,linedir);
+       koff = chf_id(2,linedir)]
+
+       chf_multido[smallbox;i;j;k]
+c         compute uu(k) = u(k)/d(k)
+          coefs(chf_ix[i;j;k],hi) =
+     &    coefs(chf_ix[i;j;k],hi)/
+     &    coefs(chf_ix[i;j;k],diag)
+
+c         compute dd(k+1) = d(k+1) - l(k+1)*uu(k)
+          coefs(chf_ix[i+ioff;j+joff;k+koff],diag) =
+     &    coefs(chf_ix[i+ioff;j+joff;k+koff],diag)-
+     &    coefs(chf_ix[i+ioff;j+joff;k+koff],lo)*
+     &    coefs(chf_ix[i     ;j     ;k     ],hi)
+       chf_enddo
+
+       return
+       end
+
+       subroutine thomasalgo(
+      &     chf_fra[phi],
+      &     chf_const_fra[coefs],
+      &     chf_box[smallbox],
+      &     chf_box[endbox],
+      &     chf_const_int[lineDir],
+      &     chf_const_int[ncomp])
+
+       integer chf_ddecl[i;j;k]
+       integer chf_ddecl[ioff;joff;koff]
+       integer hi,diag,lo,ivar
+
+       lo   = 0
+       diag = 1
+       hi   = 2
+
+       chf_dterm[
+       ioff = chf_id(0,linedir);
+       joff = chf_id(1,linedir);
+       koff = chf_id(2,linedir)]
+
+       do ivar = 0, ncomp-1
+
+c         forward sweep
+          chf_multido[smallbox;i;j;k]
+
+c            compute r(k) = r(k)/dd(k)
+             phi(chf_ix[i;j;k],ivar) =
+     &       phi(chf_ix[i;j;k],ivar)/
+     &       coefs(chf_ix[i;j;k],diag)
+
+c            compute r(k+1) = r(k+1) - l(k+1)*r(k)
+             phi(  chf_ix[i+ioff;j+joff;k+koff],ivar) =
+     &       phi(  chf_ix[i+ioff;j+joff;k+koff],ivar) -
+     &       coefs(chf_ix[i+ioff;j+joff;k+koff],lo)*
+     &       phi(  chf_ix[i     ;j     ;k     ],ivar)
+
+          chf_enddo
+
+c         compute end points
+          chf_multido[endbox;i;j;k]
+
+c            compute r(n) = r(n)/dd(n)
+             phi(chf_ix[i;j;k],ivar) =
+     &       phi(chf_ix[i;j;k],ivar)/
+     &       coefs(chf_ix[i;j;k],diag)
+          chf_enddo
+
+c         back sweep
+          chf_multido[smallbox;i;j;k;-1]
+c            compute r(k) = r(k) - uu(k)*r(k+1)
+             phi(  chf_ix[i     ;j     ;k     ],ivar) =
+     &       phi(  chf_ix[i     ;j     ;k     ],ivar) -
+     &       coefs(chf_ix[i     ;j     ;k     ],hi)*
+     &       phi(  chf_ix[i+ioff;j+joff;k+koff],ivar)
+          chf_enddo
+
+       enddo
+
+       return
+       end

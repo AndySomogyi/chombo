@@ -1,0 +1,23 @@
+The main program in this directory solves laplacian(phi)=rhs on the
+set of grids specified in the input, and then solves it again on the
+same grids refined by 2.  Then it writes out norms of the difference
+between the computed solution on the original grids and the projection
+of the computed solution on the grids refined by 2.
+
+Boundary conditions are inhomogeneous Dirichlet.
+
+The solver is Chombo's usual AMRNodeSolver.
+
+Output is written to the files:
+- out2.hdf5 or out3.hdf5, containing, on the original grids:
+  computed phi, rhs, exact phi, gradient of computed phi, exact gradient
+  of exact phi, error in phi, difference between computed phi on these 
+  grids and the projection of the computed phi on the refined grids,
+  truncation error, magnitude of error in gradient.
+- out2fine.hdf5 or out3fine.hdf5, containing, on the refined grids:
+  computed phi, rhs, exact phi, gradient of computed phi, exact gradient
+  of exact phi, error in phi, truncation error, and magnitude of error
+  in gradient.
+
+Example input file:  inputs.2level
+This is the same as ../inputs/read1op4quad16 but with verbosity turned off.

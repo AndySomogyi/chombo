@@ -1,0 +1,5 @@
+This directory was intentionally left empty.  It will be removed when the
+Chombo CVS repository is next cleaned.
+
+The script "removeEmptyDirs" in the top level directory will delete all
+such empty directories (including this one).

@@ -1,0 +1,36 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+      subroutine INCREMENTFINE(
+     &    CHF_CONST_FRA[fine],
+     &    CHF_FRA[cFine],
+     &    CHF_BOX[fineBox], 
+     &    CHF_CONST_INT[nRef],
+     &    CHF_CONST_REAL[scale])
+
+      integer CHF_DDECL[i; j; k]
+      integer CHF_DDECL[ii; jj; kk]
+
+      integer var
+
+      do var=0, CHF_NCOMP[fine]-1
+
+          CHF_MULTIDO[fineBox;i;j;k] 
+          CHF_DTERM[
+          ii=i/nRef;
+          jj=j/nRef;
+          kk=k/nRef]
+          
+          cFine(CHF_IX[ii;jj;kk],var)=cFine(CHF_IX[ii;jj;kk], var) +
+     &        scale*fine(CHF_IX[i;j;k], var)
+          
+          CHF_ENDDO
+      enddo
+
+      return
+      end
